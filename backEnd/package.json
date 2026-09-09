@@ -1,0 +1,19 @@
+{
+  "name": "music-and-player",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start":"bun run index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/figlet": "^1.7.0"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "figlet": "^1.11.4"
+  }
+}
