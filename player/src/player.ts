@@ -19,7 +19,7 @@ class zPlayer extends HTMLElement{
     }
     attributeChangedCallback(name:string|null, oldValue:string|null, newValue:string|null){
         if(!this.isMounted||oldValue===newValue) return;
-        if(name==='order'){
+        if(name==='order'){//新值更新icon
             this.updateIcon(this.getAttribute('autoplay')==='true',newValue as string);
         }
         if(name==='autoplay'){

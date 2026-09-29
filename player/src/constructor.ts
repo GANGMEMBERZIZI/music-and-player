@@ -23,7 +23,6 @@ export function PlayerBuild(){
         //模式 (单曲循环,随机播放,顺序播放)
         const module=document.createElement("span");
         module.className="module";
-        module.innerHTML = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/><path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/></svg>`;
         // <-
         const prev=document.createElement("span");
         prev.className="prev";
@@ -31,7 +30,6 @@ export function PlayerBuild(){
         // 播放
         const start=document.createElement("span");
         start.className="start";
-        start.innerHTML = `<svg width="22" height="22" fill="currentColor" viewBox="0 0 16 16" style="margin-left: 2px;"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>`;
         // ->
         const next=document.createElement("span");
         next.className="next";
