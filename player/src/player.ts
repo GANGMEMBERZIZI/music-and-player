@@ -1,5 +1,6 @@
 import sheet from "./player.css" with { type: 'css' };
 import {PlayerBuild} from "./constructor.js";
+import type {musicData} from "./types.js";
 class zPlayer extends HTMLElement{
     private isMounted: boolean = false;
     static get observedAttributes() {
@@ -15,6 +16,7 @@ class zPlayer extends HTMLElement{
         shadow.appendChild(player);
         this.ChangeModule();
         this.isMounted = true;
+        this.musicList();
         this.render();      
     }
     attributeChangedCallback(name:string|null, oldValue:string|null, newValue:string|null){
@@ -51,6 +53,47 @@ class zPlayer extends HTMLElement{
             }
         });
     }
+    //隐藏栏
+    private musicList(){
+        const list=this.shadowRoot?.querySelector<HTMLSpanElement>(".list");
+        list?.addEventListener("click",async()=>{
+        try{
+            const ol=document.createElement("ol");
+            ol.className="musicOl";
+            const response=await fetch ("/api/music");
+            const result:musicData=await response.json();
+            result.data.songs.forEach(song=>{
+                const title=song.title;
+                const author=song.artist;
+                const time:string=this.formate(song.duration);
+                const li=document.createElement("li");
+                li.className="musicLi";
+                const musicTitle=document.createElement("span");
+                musicTitle.className="musicTitle";
+                musicTitle.innerText=title;
+                const musicAuthor=document.createElement("span");
+                musicAuthor.className="musicAuthor";
+                musicAuthor.innerText=author;
+                const musicTime=document.createElement("span");
+                musicTime.className="musicTime";
+                musicTime.innerText=time;
+                li.appendChild(musicTitle);
+                li.appendChild(musicAuthor);
+                li.appendChild(musicTime);
+                ol.appendChild(li);
+            });
+            this.shadowRoot?.appendChild(ol);
+        }catch(error){
+            console.log(error);
+        }});
+    }
+    //计算时间
+    private formate(time:number):string{
+        const m=Math.floor(time/60).toString().padStart(2, '0');
+        const s=Math.floor(time%60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    } 
+    //更新icon
     private updateIcon(isPlaying:boolean,state:string){
         const start=this.shadowRoot?.querySelector<HTMLSpanElement>(".start");
         const module=this.shadowRoot?.querySelector<HTMLSpanElement>(".module");
