@@ -17,6 +17,7 @@ class zPlayer extends HTMLElement{
         this.ChangeModule();
         this.isMounted = true;
         this.musicList();
+        this.volume();
         this.render();      
     }
     attributeChangedCallback(name:string|null, oldValue:string|null, newValue:string|null){
@@ -54,38 +55,60 @@ class zPlayer extends HTMLElement{
         });
     }
     //隐藏栏
-    private musicList(){
-        const list=this.shadowRoot?.querySelector<HTMLSpanElement>(".list");
-        list?.addEventListener("click",async()=>{
-        try{
-            const ol=document.createElement("ol");
-            ol.className="musicOl";
-            const response=await fetch ("/api/music");
-            const result:musicData=await response.json();
-            result.data.songs.forEach(song=>{
-                const title=song.title;
-                const author=song.artist;
-                const time:string=this.formate(song.duration);
-                const li=document.createElement("li");
-                li.className="musicLi";
-                const musicTitle=document.createElement("span");
-                musicTitle.className="musicTitle";
-                musicTitle.innerText=title;
-                const musicAuthor=document.createElement("span");
-                musicAuthor.className="musicAuthor";
-                musicAuthor.innerText=author;
-                const musicTime=document.createElement("span");
-                musicTime.className="musicTime";
-                musicTime.innerText=time;
-                li.appendChild(musicTitle);
-                li.appendChild(musicAuthor);
-                li.appendChild(musicTime);
+     private async musicList() {
+        const list= this.shadowRoot?.querySelector<HTMLSpanElement>(".list");
+        try {
+            const response = await fetch("/api/music");
+            const result: musicData = await response.json();
+            const ol = document.createElement("ol");
+            ol.className = "musicOl hidden"; 
+            result.data.songs.forEach((song, index) => {
+                const li = document.createElement("li");
+                li.className = index === 0 ? "musicLi active" : "musicLi";
+                const leftZone = document.createElement("div");
+                leftZone.className = "musicInfoLeft";
+                const musicIndex = document.createElement("span");
+                musicIndex.className = "musicIndex";
+                musicIndex.innerText = (index + 1).toString().padStart(2, '0');
+                const musicTitle = document.createElement("span");
+                musicTitle.className = "musicTitle";
+                musicTitle.innerText = song.title;
+                leftZone.append(musicIndex, musicTitle);
+                const rightZone = document.createElement("div");
+                rightZone.className = "musicInfoRight";
+                const musicAuthor = document.createElement("span");
+                musicAuthor.className = "musicAuthor";
+                musicAuthor.innerText = song.artist;
+                const musicTime = document.createElement("span");
+                musicTime.className = "musicTime";
+                musicTime.innerText = this.formate(song.duration);
+                rightZone.append(musicAuthor, musicTime);
+                li.append(leftZone,rightZone);
                 ol.appendChild(li);
             });
             this.shadowRoot?.appendChild(ol);
-        }catch(error){
+            list?.addEventListener("click", () => {
+                ol.classList.toggle("hidden");
+            });
+        } catch (error) {
             console.log(error);
-        }});
+        }
+    }
+    //音量隐藏
+    private volume(){
+        const trumpet = this.shadowRoot?.querySelector<HTMLSpanElement>(".trumpet");
+        const volPanel = this.shadowRoot?.querySelector<HTMLDivElement>(".volPanel");
+        const volSlider = this.shadowRoot?.querySelector<HTMLInputElement>(".volSlider");
+        const volText = this.shadowRoot?.querySelector<HTMLDivElement>(".volText");
+        trumpet?.addEventListener("click",()=>{
+            volPanel?.classList.toggle("hidden");
+        });
+        volSlider?.addEventListener("input",(e)=>{
+            const val=(e.target as HTMLInputElement).value;
+            if (volText) {
+                volText.innerText = `${val}%`;
+            }
+        });
     }
     //计算时间
     private formate(time:number):string{
