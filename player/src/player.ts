@@ -1,70 +1,167 @@
 import sheet from "./player.css" with { type: 'css' };
 import {PlayerBuild} from "./constructor.js";
-import type {musicData} from "./types.js";
+import {getRandomIntInclusive,formate} from "./tool.js";
+import type {musicData,musicInfo,musicList} from "./types.js";
 class zPlayer extends HTMLElement{
-    private isMounted: boolean = false;
+    private isMounted:boolean=false;
+    private isPlaying:boolean=this.getAttribute('autoplay')==='true';
+    private currentMode=this.getAttribute('order');
+    private audio=new Audio();
+    private songsList:musicList[]=[];
+    private currentIndex:number=0;
     static get observedAttributes() {
        return ["server","type","id","fixed","autoplay","order"];
     }
     constructor(){
         super();
     }
-    connectedCallback(){
+    async connectedCallback(){
         const shadow=this.attachShadow({mode:"open"});
         shadow.adoptedStyleSheets = [sheet as CSSStyleSheet];
-        const player=PlayerBuild();
-        shadow.appendChild(player);
-        this.ChangeModule();
+        shadow.appendChild(PlayerBuild());
         this.isMounted = true;
+        await this.initData();
         this.musicList();
+        this.ChangeModule();
         this.volume();
-        this.render();      
+        this.musicPlay(); 
+        this.render();     
     }
-    attributeChangedCallback(name:string|null, oldValue:string|null, newValue:string|null){
-        if(!this.isMounted||oldValue===newValue) return;
-        if(name==='order'){//新值更新icon
-            this.updateIcon(this.getAttribute('autoplay')==='true',newValue as string);
+    //解析数据
+    private async initData(){
+        try{
+            const response=await fetch("/api/music");
+            const result:musicData=await response.json();
+            this.songsList=result.data.songs;
+            if(this.songsList.length>0){
+                this.loadMusic(this.currentIndex);
+            }
         }
-        if(name==='autoplay'){
-            this.updateIcon(newValue==='true',this.getAttribute('order') as string);
+        catch(error){
+            console.log(error);
         }
+    }
+    //加载歌曲
+    private loadMusic(index:number){
+        if(this.songsList.length===0)
+            return;
+        const song=this.songsList[index];
+        this.audio.src=song.src;
+        const title=this.shadowRoot?.querySelector<HTMLParagraphElement>(".title");
+        const author=this.shadowRoot?.querySelector<HTMLParagraphElement>(".author");
+        const cover=this.shadowRoot?.querySelector<HTMLImageElement>(".img");
+        if(title) title.innerText=song.title;
+        if(author) author.innerText=song.artist;
+        if(cover) cover.src=song.cover;
+        const lis=this.shadowRoot?.querySelectorAll(".musicLi");
+        if(lis){
+            lis.forEach((li,i)=>{
+                if(i===index){
+                    li.classList.add("active");
+                }else{
+                    li.classList.remove("active");
+                }
+            });
+        }
+        if(this.isPlaying) {
+            this.audio.play();
+        } 
     }
     //更改状态
     private ChangeModule(){
         const module=this.shadowRoot!.querySelector<HTMLSpanElement>(".module");
         const start=this.shadowRoot!.querySelector<HTMLSpanElement>(".start");
+        const prev=this.shadowRoot!.querySelector<HTMLSpanElement>(".prev");
+        const next=this.shadowRoot!.querySelector<HTMLSpanElement>(".next");
         start?.addEventListener("click",()=>{
-            const currentState=this.getAttribute('autoplay')==='true';
-            this.setAttribute('autoplay',currentState ? 'false' :'true');
+            this.isPlaying=!this.isPlaying;
+            if(this.isPlaying){
+                this.audio.play();
+            }else{
+                this.audio.pause();
+            }
+            this.render();
         });
         module?.addEventListener("click",()=>{
-            const currentModule=this.getAttribute('order');
-            switch (currentModule){
+            switch (this.currentMode){
                 case 'loop':
-                    this.setAttribute('order','random');
+                    this.currentMode='random';
                     break;
                 case 'random':
-                    this.setAttribute('order','ordering');
+                    this.currentMode='ordering';
                     break;
                 case 'ordering':
-                    this.setAttribute('order','loop');
+                    this.currentMode='loop';
                     break;
                 default:
                     console.log("未知的order属性");    
+            }
+            this.render();
+        });
+        prev?.addEventListener("click",()=>{
+            const totals=this.songsList.length;
+            if(totals === 0) return;
+            if(this.currentMode==="random"){
+                this.currentIndex=getRandomIntInclusive(0,totals-1);
+            }else{
+            this.currentIndex=(this.currentIndex-1+totals)%totals;
+            this.loadMusic(this.currentIndex);
+            }
+        });
+        next?.addEventListener("click",()=>{
+            const totals=this.songsList.length;
+            if(totals===0) return;
+            if (this.currentMode==="random"){
+                this.currentIndex=getRandomIntInclusive(0,totals-1);
+            }else{
+                this.currentIndex=(this.currentIndex+1)%totals;
+            }
+            this.loadMusic(this.currentIndex);
+        });
+    }
+    //audio
+    private musicPlay(){
+        const controller=this.shadowRoot?.querySelector<HTMLInputElement>(".control");
+        this.audio.addEventListener("loadedmetadata",()=>{
+            if(controller){
+                controller.max=String(this.audio.duration);
+            }
+        });
+        this.audio.addEventListener("timeupdate",()=>{
+            if(controller){
+                controller.value = String(this.audio.currentTime);
+            }
+        });
+        controller?.addEventListener("input", (e)=>{
+            const val=(e.target as HTMLInputElement).value;
+            this.audio.currentTime = Number(val);
+        });
+        this.audio.addEventListener("ended", () => {
+            const totals = this.songsList.length;
+            switch (this.currentMode) {
+                case "loop":
+                    this.audio.currentTime = 0;
+                    this.audio.play();
+                    break;
+                case "random":
+                    this.currentIndex = getRandomIntInclusive(0, totals - 1);
+                    this.loadMusic(this.currentIndex);
+                    break;
+                case "ordering":
+                    this.currentIndex = (this.currentIndex + 1) % totals;
+                    this.loadMusic(this.currentIndex);
+                    break;
             }
         });
     }
     //隐藏栏
      private async musicList() {
         const list= this.shadowRoot?.querySelector<HTMLSpanElement>(".list");
-        try {
-            const response = await fetch("/api/music");
-            const result: musicData = await response.json();
             const ol = document.createElement("ol");
             ol.className = "musicOl hidden"; 
-            result.data.songs.forEach((song, index) => {
+            this.songsList.forEach((song, index) => {
                 const li = document.createElement("li");
-                li.className = index === 0 ? "musicLi active" : "musicLi";
+                li.className=index=== this.currentIndex?"musicLi active":"musicLi";
                 const leftZone = document.createElement("div");
                 leftZone.className = "musicInfoLeft";
                 const musicIndex = document.createElement("span");
@@ -81,18 +178,22 @@ class zPlayer extends HTMLElement{
                 musicAuthor.innerText = song.artist;
                 const musicTime = document.createElement("span");
                 musicTime.className = "musicTime";
-                musicTime.innerText = this.formate(song.duration);
+                musicTime.innerText = formate(song.duration);
                 rightZone.append(musicAuthor, musicTime);
                 li.append(leftZone,rightZone);
+                li.addEventListener("click",()=>{
+                    this.currentIndex=index;
+                    this.isPlaying = true;
+                    this.loadMusic(this.currentIndex);
+                    this.render();
+
+                });
                 ol.appendChild(li);
             });
             this.shadowRoot?.appendChild(ol);
             list?.addEventListener("click", () => {
                 ol.classList.toggle("hidden");
             });
-        } catch (error) {
-            console.log(error);
-        }
     }
     //音量隐藏
     private volume(){
@@ -105,17 +206,12 @@ class zPlayer extends HTMLElement{
         });
         volSlider?.addEventListener("input",(e)=>{
             const val=(e.target as HTMLInputElement).value;
-            if (volText) {
-                volText.innerText = `${val}%`;
+            if (volText){
+                volText.innerText= `${val}%`;
             }
+            this.audio.volume=Number(val)/100;
         });
     }
-    //计算时间
-    private formate(time:number):string{
-        const m=Math.floor(time/60).toString().padStart(2, '0');
-        const s=Math.floor(time%60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-    } 
     //更新icon
     private updateIcon(isPlaying:boolean,state:string){
         const start=this.shadowRoot?.querySelector<HTMLSpanElement>(".start");
@@ -142,7 +238,7 @@ class zPlayer extends HTMLElement{
         }
     }
     private render(){
-        this.updateIcon(this.getAttribute('autoplay')==='true',this.getAttribute('order') as string);
+        this.updateIcon(this.isPlaying,this.currentMode as string);
     }
 }
 customElements.define("z-player",zPlayer);

@@ -15,6 +15,6 @@ export interface musicList{
     album:string;
     cover:string;
     src:string;
-    lrc:string, 
-    duration:number
+    lrc:string; 
+    duration:number;
 }

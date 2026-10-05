@@ -4,6 +4,9 @@ export function PlayerBuild(){
         //唱片
         const record=document.createElement("div");
         record.className="record";
+        const img=document.createElement("img");
+        img.className="img";
+        record.appendChild(img);
         //详细信息
         const info=document.createElement("div");
         info.className="info";

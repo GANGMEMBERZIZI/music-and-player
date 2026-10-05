@@ -8,6 +8,9 @@
 .record {
   @apply h-11 w-11 flex-shrink-0 animate-[spin_10s_linear_infinite] rounded-full border-4 border-black bg-gray-800;
 }
+.img {
+    @apply w-full h-full rounded-full object-cover;
+}
 .info {
   @apply ml-3 flex flex-col overflow-hidden;
 }
