@@ -106,4 +106,17 @@
 .volText {
     @apply text-[10px] text-gray-500 font-mono mt-2 z-10;
 }
+.lrc-wrapper {
+    @apply relative h-64 overflow-hidden w-full; 
+    mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+}
+
+.lrc-list {
+    @apply transition-transform duration-300 ease-out pt-[100px] pb-[100px]; 
+}
+
+.lrc-line {
+    @apply text-center py-2 min-h-[32px];
+}
 

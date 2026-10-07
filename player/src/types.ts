@@ -18,3 +18,7 @@ export interface musicList{
     lrc:string; 
     duration:number;
 }
+export interface lyrics{
+    time:number;
+    text:string;
+}

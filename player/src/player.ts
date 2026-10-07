@@ -1,7 +1,8 @@
 import sheet from "./player.css" with { type: 'css' };
 import {PlayerBuild} from "./constructor.js";
 import {getRandomIntInclusive,formate} from "./tool.js";
-import type {musicData,musicInfo,musicList} from "./types.js";
+import {parseLRC} from "./lyrics.js";
+import type {musicData,musicInfo,musicList,lyrics} from "./types.js";
 class zPlayer extends HTMLElement{
     private isMounted:boolean=false;
     private isPlaying:boolean=this.getAttribute('autoplay')==='true';
@@ -9,6 +10,8 @@ class zPlayer extends HTMLElement{
     private audio=new Audio();
     private songsList:musicList[]=[];
     private currentIndex:number=0;
+    private isDragging: boolean = false;
+    private currentLyrics: lyrics[] = [];
     static get observedAttributes() {
        return ["server","type","id","fixed","autoplay","order"];
     }
@@ -63,6 +66,8 @@ class zPlayer extends HTMLElement{
                 }
             });
         }
+        this.currentLyrics = parseLRC(song.lrc);
+        this.renderLyrics();
         if(this.isPlaying) {
             this.audio.play();
         } 
@@ -122,14 +127,47 @@ class zPlayer extends HTMLElement{
     //audio
     private musicPlay(){
         const controller=this.shadowRoot?.querySelector<HTMLInputElement>(".control");
+        controller?.addEventListener("mousedown",()=>{
+            this.isDragging=true;
+        });
+        controller?.addEventListener("mouseup",()=>{
+            this.isDragging=false;
+        });
+        controller?.addEventListener("touchstart",()=>{
+            this.isDragging=true;
+        });
+        controller?.addEventListener("touchend",()=>{
+            this.isDragging = false;
+        });
         this.audio.addEventListener("loadedmetadata",()=>{
             if(controller){
                 controller.max=String(this.audio.duration);
             }
         });
         this.audio.addEventListener("timeupdate",()=>{
-            if(controller){
-                controller.value = String(this.audio.currentTime);
+            if(controller&&!this.isDragging){
+                controller.value=String(this.audio.currentTime);
+            }
+            if(this.currentLyrics.length===0) return;
+            const currentTime=this.audio.currentTime;
+            let activeIndex=this.currentLyrics.findIndex(lrc=>lrc.time>currentTime) - 1;
+            if (activeIndex===-2) activeIndex=this.currentLyrics.length-1;
+            if (activeIndex===-1) activeIndex=0;
+            const lrcUl=this.shadowRoot?.querySelector<HTMLUListElement>(".lrc-list");
+            const lines=lrcUl?.querySelectorAll<HTMLLIElement>(".lrc-line");
+            if (lines&&lrcUl){
+                lines.forEach((li, i)=>{
+                    if(i===activeIndex){
+                        li.classList.add("text-red-500", "opacity-100", "scale-110");
+                        li.classList.remove("opacity-50");
+                    }else{
+                        li.classList.remove("text-red-500", "opacity-100", "scale-110"); 
+                        li.classList.add("opacity-50");
+                    }
+                });
+                const lineHeight=32; 
+                const translateY=activeIndex * lineHeight; 
+                lrcUl.style.transform=`translateY(-${translateY}px)`;
             }
         });
         controller?.addEventListener("input", (e)=>{
@@ -239,6 +277,17 @@ class zPlayer extends HTMLElement{
     }
     private render(){
         this.updateIcon(this.isPlaying,this.currentMode as string);
+    }
+    private renderLyrics(){
+        const lrcUl = this.shadowRoot?.querySelector<HTMLUListElement>(".lrc-list");
+        if(!lrcUl) return;
+        lrcUl.innerHTML="";
+        this.currentLyrics.forEach(lrc=>{
+            const li = document.createElement("li");
+            li.className = "lrc-line transition-all duration-300 opacity-50";
+            li.innerText = lrc.text;
+            lrcUl.appendChild(li);
+        });
     }
 }
 customElements.define("z-player",zPlayer);
