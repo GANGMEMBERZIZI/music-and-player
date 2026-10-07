@@ -1,10 +1,9 @@
-import sheet from "./player.css" with { type: 'css' };
+import cssString from "./player.css?inline";
 import {PlayerBuild} from "./constructor.js";
 import {getRandomIntInclusive,formate} from "./tool.js";
 import {parseLRC} from "./lyrics.js";
-import type {musicData,musicInfo,musicList,lyrics} from "./types.js";
+import type {musicData,musicList,lyrics} from "./types.js";
 class zPlayer extends HTMLElement{
-    private isMounted:boolean=false;
     private isPlaying:boolean=this.getAttribute('autoplay')==='true';
     private currentMode=this.getAttribute('order');
     private audio=new Audio();
@@ -20,9 +19,10 @@ class zPlayer extends HTMLElement{
     }
     async connectedCallback(){
         const shadow=this.attachShadow({mode:"open"});
-        shadow.adoptedStyleSheets = [sheet as CSSStyleSheet];
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(cssString);
+        shadow.adoptedStyleSheets = [sheet];
         shadow.appendChild(PlayerBuild());
-        this.isMounted = true;
         await this.initData();
         this.musicList();
         this.ChangeModule();
@@ -199,7 +199,7 @@ class zPlayer extends HTMLElement{
             ol.className = "musicOl hidden"; 
             this.songsList.forEach((song, index) => {
                 const li = document.createElement("li");
-                li.className=index=== this.currentIndex?"musicLi active":"musicLi";
+                li.className=index=== this.currentIndex?"musicLi active group":"musicLi group";
                 const leftZone = document.createElement("div");
                 leftZone.className = "musicInfoLeft";
                 const musicIndex = document.createElement("span");
