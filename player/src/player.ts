@@ -33,7 +33,14 @@ class zPlayer extends HTMLElement{
     //解析数据
     private async initData(){
         try{
-            const response=await fetch("/api/music");
+            const server=this.getAttribute("server");
+            const type=this.getAttribute("type");
+            const id=this.getAttribute("id");
+            if (!server||!type||!id){
+                console.log("不存在属性");
+                return;
+            }     
+            const response=await fetch(`/api/music/server=${server}/type=${type}/id=${id}`);
             const result:musicData=await response.json();
             this.songsList=result.data.songs;
             if(this.songsList.length>0){

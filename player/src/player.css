@@ -1,0 +1,129 @@
+@import "tailwindcss";
+:host {
+  display: block;
+  width: 100%;
+}
+
+.player {
+  @apply fixed bottom-0 left-0 flex h-16 w-full items-center justify-between border border-gray-200 bg-white px-4 shadow-sm;
+}
+
+.control {
+  @apply absolute top-0 left-0 z-10 h-2 w-full m-0 p-0 cursor-pointer appearance-none bg-gray-200 accent-red-500 transition-all duration-200 hover:h-2;
+}
+
+.record {
+  @apply h-11 w-11 ml-4 mt-3 flex-shrink-0 animate-[spin_10s_linear_infinite] rounded-full border-4 border-black bg-gray-800;
+}
+
+.img {
+  @apply w-full h-full rounded-full object-cover;
+}
+
+.info {
+  @apply ml-3 flex flex-col overflow-hidden;
+}
+.title {
+  @apply truncate text-sm font-semibold text-gray-800;
+}
+.author {
+  @apply truncate text-xs text-gray-500;
+}
+
+.option {
+  @apply  mt-3 flex flex-1 items-center justify-center gap-4;
+}
+.module,
+.prev,
+.next,
+.list,
+.trumpet {
+  @apply relative cursor-pointer text-gray-500 transition-colors hover:text-red-500;
+}
+.start {
+  @apply flex h-10 w-10 transform cursor-pointer items-center justify-center rounded-full bg-red-500 text-white shadow-md transition-transform hover:scale-105 hover:bg-red-600;
+}
+
+.others {
+  @apply  mr-6 mt-3 flex w-1/4 items-center justify-end gap-8 text-gray-500;
+}
+.songs {
+  @apply cursor-pointer rounded border border-gray-400 px-1 text-xl transition-colors hover:border-red-500 hover:text-red-500;
+}
+
+.musicOl {
+  @apply absolute top-full mt-2 right-0 z-50 m-0 p-0 w-[420px] max-h-[350px] overflow-y-auto list-none;
+  @apply bg-white border border-gray-200 shadow-xl rounded-lg;
+  @apply animate-[fade-in_0.2s_ease-out]; 
+}
+.musicOl.hidden {
+  @apply hidden;
+}
+.musicLi {
+  @apply flex items-center justify-between py-3 px-4 border-b border-gray-100 text-sm transition-colors duration-150 cursor-pointer;
+  @apply border-l-4 border-transparent hover:bg-gray-50;
+}
+.musicLi.active {
+  @apply bg-gray-100 border-l-red-500;
+}
+.musicInfoLeft {
+  @apply flex items-center gap-4 overflow-hidden flex-1;
+}
+.musicIndex {
+  @apply text-gray-400 font-mono w-6 text-right flex-shrink-0;
+}
+.musicTitle {
+  @apply text-gray-800 truncate;
+}
+.musicInfoRight {
+  @apply flex items-center gap-4 flex-shrink-0;
+}
+.musicAuthor {
+  @apply text-gray-500 text-xs truncate max-w-[120px] text-right group-hover:text-red-500 transition-colors;
+}
+.musicTime {
+  @apply text-gray-400 font-mono text-xs w-10 text-right;
+}
+.musicOl::-webkit-scrollbar {
+  @apply w-2;
+}
+.musicOl::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded hover:bg-gray-400;
+}
+
+.volPanel {
+  @apply absolute bottom-[150%] left-1/2 -translate-x-1/2 w-9 pb-2 pt-2 
+         bg-white rounded-xl shadow-lg border border-gray-100 z-50 
+         flex flex-col items-center;
+  @apply animate-[fade-in_0.2s_ease-out];
+}
+.volPanel.hidden {
+  @apply hidden;
+}
+
+.volSlider {
+  @apply absolute top-1/2 left-1/2 w-20 h-1 appearance-none bg-gray-200 rounded-full outline-none cursor-pointer accent-red-500;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+.volSlider::-webkit-slider-thumb {
+  @apply appearance-none w-3.5 h-3.5 bg-white rounded-full shadow border border-gray-200 hover:scale-110 transition-transform;
+  background: #ef4444;   /* red-500 */
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.volText {
+  @apply relative text-[10px] text-gray-500 font-mono z-10;
+}
+
+.lrc-wrapper {
+  @apply relative h-64 overflow-hidden w-full; 
+  mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+}
+.lrc-list {
+  @apply transition-transform duration-300 ease-out pt-[100px] pb-[100px]; 
+}
+.lrc-line {
+  @apply text-center py-2 min-h-[32px];
+}
