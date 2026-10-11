@@ -35,12 +35,12 @@ export interface LyricBlock {
 }
 export interface neteaseLyrics{
     code: number;
-    sgc?: boolean;
-    sfy?: boolean;
-    qfy?: boolean;
-    lrc?: LyricBlock;
-    klyric?: LyricBlock;
-    tlyric?: LyricBlock;
-    nolyric?: boolean;      
-    uncollected?: boolean;
+    sgc: boolean;
+    sfy: boolean;
+    qfy: boolean;
+    lrc: LyricBlock;
+    klyric: LyricBlock;
+    tlyric: LyricBlock;
+    nolyric: boolean;      
+    uncollected: boolean;
 }

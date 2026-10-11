@@ -40,7 +40,7 @@ class zPlayer extends HTMLElement{
                 console.log("不存在属性");
                 return;
             }     
-            const response=await fetch(`/api/music/server=${server}/type=${type}/id=${id}`);
+            const response=await fetch(`/api/music/${server}/${type}/${id}`);
             const result:musicData=await response.json();
             this.songsList=result.data.songs;
             if(this.songsList.length>0){
