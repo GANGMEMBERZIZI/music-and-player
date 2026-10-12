@@ -21,7 +21,7 @@
 }
 
 .info {
-  @apply ml-3 flex flex-col overflow-hidden;
+  @apply ml-3 flex w-56 flex-shrink-0 flex-col overflow-hidden;
 }
 .title {
   @apply truncate text-sm font-semibold text-gray-800;
@@ -52,9 +52,9 @@
 }
 
 .musicOl {
-  @apply absolute top-full mt-2 right-0 z-50 m-0 p-0 w-[420px] max-h-[350px] overflow-y-auto list-none;
+  @apply fixed bottom-16 right-0 z-50 m-0 p-0 w-[420px] max-h-[350px] overflow-y-auto list-none;
   @apply bg-white border border-gray-200 shadow-xl rounded-lg;
-  @apply animate-[fade-in_0.2s_ease-out]; 
+  @apply animate-[fade-in_0.2s_ease-out];
 }
 .musicOl.hidden {
   @apply hidden;
