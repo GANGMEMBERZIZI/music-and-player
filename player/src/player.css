@@ -5,7 +5,7 @@
 }
 
 .player {
-  @apply fixed bottom-0 left-0 flex h-16 w-full items-center justify-between border border-gray-200 bg-white px-4 shadow-sm;
+  @apply fixed bottom-0 left-0 z-60 flex h-16 w-full items-center justify-between border border-gray-200 bg-white px-4 shadow-sm;
 }
 
 .control {
@@ -52,7 +52,7 @@
 }
 
 .musicOl {
-  @apply fixed bottom-16 right-0 z-50 m-0 p-0 w-[420px] max-h-[350px] overflow-y-auto list-none;
+  @apply fixed bottom-16 right-16 z-50 m-0 p-0 w-[420px] max-h-[350px] overflow-y-auto list-none;
   @apply bg-white border border-gray-200 shadow-xl rounded-lg;
   @apply animate-[fade-in_0.2s_ease-out];
 }
@@ -94,7 +94,7 @@
 .volPanel {
   @apply absolute bottom-[150%] left-1/2 -translate-x-1/2 w-9 pb-2 pt-2 
          bg-white rounded-xl shadow-lg border border-gray-100 z-50 
-         flex flex-col items-center;
+         flex flex-col items-center;      
   @apply animate-[fade-in_0.2s_ease-out];
 }
 .volPanel.hidden {
