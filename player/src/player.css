@@ -117,13 +117,16 @@
 }
 
 .lrc-wrapper {
-  @apply relative h-64 overflow-hidden w-full; 
+  @apply absolute bottom-full left-0 right-0 h-64 overflow-hidden w-full bg-white;
   mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+}
+.lrc-wrapper.hidden {
+  @apply hidden;
 }
 .lrc-list {
   @apply transition-transform duration-300 ease-out pt-[100px] pb-[100px]; 
 }
 .lrc-line {
-  @apply text-center py-2 min-h-[32px];
+  @apply text-center py-2 min-h-[8px];
 }

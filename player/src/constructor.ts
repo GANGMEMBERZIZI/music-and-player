@@ -78,11 +78,18 @@ export function PlayerBuild(){
         volumeWrapper.append(trumpet, volPanel);
         others.appendChild(songs);
         others.appendChild(volumeWrapper);
+        //歌词面板
+        const lrcWrapper=document.createElement("div");
+        lrcWrapper.className="lrc-wrapper hidden";
+        const lrcList=document.createElement("ul");
+        lrcList.className="lrc-list";
+        lrcWrapper.appendChild(lrcList);
         // 组装
         player.appendChild(record);
         player.appendChild(info);
         player.appendChild(controller);
         player.appendChild(option);
         player.appendChild(others);
+        player.appendChild(lrcWrapper);
         return player;
 }

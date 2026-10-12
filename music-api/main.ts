@@ -25,7 +25,7 @@ async function getLyrics(server:string,id:string):Promise<string>{
       return result?.lrc?.lyric||"[00:00.00]暂无歌词";
     }
     else if(server==="qq"){
-      const response=await fetch(`https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songid=${id}&format=json&nobase64=1`,{headers:QQ_HEADERS,signal: AbortSignal.timeout(5000)});
+      const response=await fetch(`https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid=${id}&format=json&nobase64=1`,{headers:QQ_HEADERS,signal: AbortSignal.timeout(5000)});
       const result=await response.json() as QQLyrics;
       return result.lyric||"[00:00.00]暂无歌词";
     }else{
@@ -34,15 +34,57 @@ async function getLyrics(server:string,id:string):Promise<string>{
     return "[00:00.00]暂无歌词";
   }catch(error){
     console.error("歌词请求失败:", error);
-    return "[00:00.00]暂无歌词"; 
+    return "[00:00.00]暂无歌词";
+  }
+}
+async function getQQUrl(songmid:string):Promise<string>{
+  try{
+    const body=JSON.stringify({
+      req_0:{
+        module:"vkey.GetVkeyServer",
+        method:"CgiGetVkey",
+        param:{
+          guid:"10000",
+          songmid:[songmid],
+          songtype:[0],
+          uin:"0",
+          loginflag:1,
+          platform:"20",
+        },
+      },
+    });
+    const response=await fetch(`https://u.y.qq.com/cgi-bin/musicu.fcg`,{
+      method:"POST",
+      headers:{...QQ_HEADERS,"Content-Type":"application/json"},
+      body,
+      signal:AbortSignal.timeout(5000),
+    });
+    const result=await response.json()as any;
+    const data=result?.req_0?.data;
+    const purl=data?.midurlinfo?.[0]?.purl;
+    if(!purl) return "";
+    const sip=data?.sip?.[0]??"https://dl.stream.qqmusic.qq.com/";
+    return `${sip}${purl}`;
+  }catch(error){
+    console.error("QQ 播放地址获取失败:",error);
+    return "";
   }
 }
 async function getNeteaseList(data: any): Promise<musicList[]> {
+  const trackIds: { id: number }[] = data.playlist.trackIds || [];
+  const BATCH = 100;
+  const tracks: any[] = [];
+  for (let i = 0; i < trackIds.length; i += BATCH) {
+    const chunk = trackIds.slice(i, i + BATCH).map((t) => ({ id: String(t.id) }));
+    const response = await fetch(
+      `https://music.163.com/api/v3/song/detail?c=${encodeURIComponent(JSON.stringify(chunk))}`,
+      { headers: NETEASE_HEADERS, signal: AbortSignal.timeout(8000) }
+    );
+    const result = (await response.json()) as any;
+    tracks.push(...(result.songs || []));
+  }
   return Promise.all(
-    data.playlist.tracks.map(async (element: any): Promise<musicList> => {
-      console.log("歌单总数：", data.playlist?.trackCount);
-console.log("当前返回数量：", data.playlist?.tracks?.length);
-console.log("是否有完整歌单 ID：", data.playlist?.trackIds?.length);
+    tracks.map(async (element: any): Promise<musicList> => {
       return {
         id:String(element.id),
         title: element.name,
@@ -65,8 +107,8 @@ async function getQQList(data: any): Promise<musicList[]> {
         artist: element.singer.map((s: any) => s.name).join("/"),
         album: element.albumname,
         cover: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${element.albummid}.jpg`,
-        src: `https://api.injahow.cn/meting/?type=url&id=${element.songmid}&server=tencent`,
-        lrc: await getLyrics("qq", String(element.songid)),
+        src: await getQQUrl(element.songmid),
+        lrc: await getLyrics("qq", String(element.songmid)),
         duration: element.interval * 1000,
       };
     })
@@ -94,6 +136,15 @@ Bun.serve({
       }else if(server==="qq"&&type==="songlist"){
         const response=await fetch(`https://c.y.qq.com/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg?type=1&json=1&utf8=1&onlysong=0&disstid=${id}&g_tk=5381&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0`,{headers:QQ_HEADERS,signal: AbortSignal.timeout(8000)});
         data=await response.json()as any;
+        if(data.code!==0||!data.cdlist?.length){
+          return Response.json({
+            code:403,
+            msg:data.code===10
+              ?"该歌单是私密歌单或需要登录（QQ 返回 code 10），请换一个公开歌单 id"
+              :`QQ 歌单请求失败（code ${data.code}），请检查 id 是否正确`,
+            data:null,
+          },{status:403,headers:CORS_HEADERS});
+        }
         result={
           code:200,
           msg:"OK",

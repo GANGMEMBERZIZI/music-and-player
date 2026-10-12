@@ -27,7 +27,8 @@ class zPlayer extends HTMLElement{
         this.musicList();
         this.ChangeModule();
         this.volume();
-        this.musicPlay(); 
+        this.lyricsToggle();
+        this.musicPlay();
         this.render();     
     }
     //解析数据
@@ -51,6 +52,28 @@ class zPlayer extends HTMLElement{
             console.log(error);
         }
     }
+    private updateLyricHighlight(time?: number){
+    if (this.currentLyrics.length===0) return;
+    const currentTime=time??this.audio.currentTime;
+    let activeIndex=this.currentLyrics.findIndex(lrc => lrc.time > currentTime) - 1;
+    if (activeIndex===-2) activeIndex=this.currentLyrics.length - 1;
+    if (activeIndex===-1) activeIndex=0;
+    const lrcUl=this.shadowRoot?.querySelector<HTMLUListElement>(".lrc-list");
+    const lines=lrcUl?.querySelectorAll<HTMLLIElement>(".lrc-line");
+    if (!lines||!lrcUl||!lines[activeIndex]) return;
+    lines.forEach((li, i)=>{
+    if (i === activeIndex) {
+      li.classList.add("text-red-500", "opacity-100", "scale-110");
+      li.classList.remove("opacity-50");
+    } else {
+      li.classList.remove("text-red-500", "opacity-100", "scale-110");
+      li.classList.add("opacity-50");
+    }});
+    const wrapperHeight=lrcUl.parentElement?.clientHeight ?? 256;
+    const activeLine=lines[activeIndex];
+    const offset=activeLine.offsetTop + activeLine.offsetHeight / 2 - wrapperHeight / 2;
+    lrcUl.style.transform=`translateY(-${offset}px)`;
+}
     //加载歌曲
     private loadMusic(index:number){
         if(this.songsList.length===0)
@@ -155,31 +178,15 @@ class zPlayer extends HTMLElement{
             if(controller&&!this.isDragging){
                 controller.value=String(this.audio.currentTime);
             }
-            if(this.currentLyrics.length===0) return;
-            const currentTime=this.audio.currentTime;
-            let activeIndex=this.currentLyrics.findIndex(lrc=>lrc.time>currentTime) - 1;
-            if (activeIndex===-2) activeIndex=this.currentLyrics.length-1;
-            if (activeIndex===-1) activeIndex=0;
-            const lrcUl=this.shadowRoot?.querySelector<HTMLUListElement>(".lrc-list");
-            const lines=lrcUl?.querySelectorAll<HTMLLIElement>(".lrc-line");
-            if (lines&&lrcUl){
-                lines.forEach((li, i)=>{
-                    if(i===activeIndex){
-                        li.classList.add("text-red-500", "opacity-100", "scale-110");
-                        li.classList.remove("opacity-50");
-                    }else{
-                        li.classList.remove("text-red-500", "opacity-100", "scale-110"); 
-                        li.classList.add("opacity-50");
-                    }
-                });
-                const lineHeight=32; 
-                const translateY=activeIndex * lineHeight; 
-                lrcUl.style.transform=`translateY(-${translateY}px)`;
-            }
+            this.updateLyricHighlight();
+        });
+        this.audio.addEventListener("seeked",()=>{
+            this.updateLyricHighlight();
         });
         controller?.addEventListener("input", (e)=>{
             const val=(e.target as HTMLInputElement).value;
             this.audio.currentTime = Number(val);
+            this.updateLyricHighlight(Number(val));
         });
         this.audio.addEventListener("ended", () => {
             const totals = this.songsList.length;
@@ -255,6 +262,14 @@ class zPlayer extends HTMLElement{
                 volText.innerText= `${val}%`;
             }
             this.audio.volume=Number(val)/100;
+        });
+    }
+    //歌词显隐
+    private lyricsToggle(){
+        const songs=this.shadowRoot?.querySelector<HTMLSpanElement>(".songs");
+        const wrapper=this.shadowRoot?.querySelector<HTMLDivElement>(".lrc-wrapper");
+        songs?.addEventListener("click",()=>{
+            wrapper?.classList.toggle("hidden");
         });
     }
     //更新icon
