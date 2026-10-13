@@ -2,5 +2,11 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "music-api",
   "main": "src/index.ts",
-  "compatibility_date": "2026-10-13"
+  "compatibility_date": "2026-10-13",
+  "routes": [
+    {
+      "pattern": "api.zsaw.dpdns.org",
+      "custom_domain": true
+    }
+  ]
 }

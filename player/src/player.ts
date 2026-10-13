@@ -40,8 +40,9 @@ class zPlayer extends HTMLElement{
             if (!server||!type||!id){
                 console.log("不存在属性");
                 return;
-            }     
-            const response=await fetch(`/api/music/${server}/${type}/${id}`);
+            }
+            const API_BASE = "https://api.zsaw.dpdns.org";     
+            const response = await fetch(`${API_BASE}/api/music/${server}/${type}/${id}`);
             const result:musicData=await response.json();
             this.songsList=result.data.songs;
             if(this.songsList.length>0){
