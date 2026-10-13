@@ -4,11 +4,12 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start":"bun run index.ts"
+    "start": "bun run index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/figlet": "^1.7.0"
+    "@types/figlet": "^1.7.0",
+    "wrangler": "^4.149.0"
   },
   "peerDependencies": {
     "typescript": "^7"
