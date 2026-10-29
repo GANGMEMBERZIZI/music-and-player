@@ -14,6 +14,15 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
+async function processInBatches<T,R>(items:T[],batchSize:number,processItem:(item:T)=>Promise<R>):Promise<R[]>{
+  let result:R[]=[];
+  for(let i=0;i<items.length;i+=batchSize){
+    const batch=items.slice(i, i + batchSize);
+    const batchResults=await Promise.all(batch.map(item => processItem(item)));
+    result.push(...batchResults);
+  }
+  return result;
+}
 async function getLyrics(server:string,id:string):Promise<string>{
   try{
     if(server==="netease"){
@@ -83,9 +92,8 @@ async function getNeteaseList(data: any): Promise<musicList[]> {
     const result = (await response.json()) as any;
     tracks.push(...(result.songs || []));
   }
-  return Promise.all(
-    tracks.map(async (element: any): Promise<musicList> => {
-      return {
+  return await processInBatches<any,musicList>(tracks,5,async(element: any)=>{
+    return {
         id:String(element.id),
         title: element.name,
         artist: element.ar.map((a: any) => a.name).join("/"),
@@ -95,24 +103,22 @@ async function getNeteaseList(data: any): Promise<musicList[]> {
         lrc: await getLyrics("netease", String(element.id)),
         duration: element.dt,
       };
-    })
-  );
+  })
 }
-async function getQQList(data: any): Promise<musicList[]> {
-  return Promise.all(
-    data.cdlist[0].songlist.map(async (element: any): Promise<musicList> => {
-      return {
-        id: String(element.songid),
-        title: element.songname,
-        artist: element.singer.map((s: any) => s.name).join("/"),
-        album: element.albumname,
-        cover: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${element.albummid}.jpg`,
-        src: await getQQUrl(element.songmid),
-        lrc: await getLyrics("qq", String(element.songmid)),
-        duration: element.interval * 1000,
-      };
-    })
-  );
+async function getQQList(data: any): Promise<musicList[]>{
+  const songlist = data.cdlist[0].songlist;
+  return await processInBatches<any, musicList>(songlist,5,async (element: any) => {
+    return {
+      id: String(element.songid),
+      title: element.songname,
+      artist: element.singer.map((s: any) => s.name).join("/"),
+      album: element.albumname,
+      cover: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${element.albummid}.jpg`,
+      src: await getQQUrl(element.songmid),
+      lrc: await getLyrics("qq", String(element.songmid)), 
+      duration: element.interval * 1000,
+    };
+  });
 }
 
 export default {
@@ -120,16 +126,12 @@ export default {
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: CORS_HEADERS });
     }
-
     const url = new URL(req.url);
     const match = url.pathname.match(/^\/api\/music\/([^/]+)\/([^/]+)\/([^/]+)$/);
-
     if (!match) {
       return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
     }
-
     const [_, server, type, id] = match;
-
     try {
       let data, result;
       if (server === "netease") {
