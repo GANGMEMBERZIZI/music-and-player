@@ -25,6 +25,17 @@ async function processInBatches<T,R>(items:T[],batchSize:number,processItem:(ite
   return result;
 }
 async function getLyrics(server:string,id:string):Promise<string>{
+  const cache=caches.default;
+  const cacheKey=new Request(`https://music-cache.local/lyric/${server}/${id}`);
+  try{
+  let cacheResponse=await cache.match(cacheKey);
+  if(cacheResponse){
+    return await cacheResponse.text();
+  }
+}catch(error){
+
+}
+let lyric = "[00:00.00]暂无歌词";
   try{
     if(server==="netease"){
       const response=await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1&kv=1&tv=-1`,{headers:{...NETEASE_HEADERS,'cf-priority': '30/0'},signal:AbortSignal.timeout(5000)});
@@ -37,15 +48,23 @@ async function getLyrics(server:string,id:string):Promise<string>{
     else if(server==="qq"){
       const response=await fetch(`https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid=${id}&format=json&nobase64=1`,{headers:{...QQ_HEADERS,'cf-priority': '30/0'},signal: AbortSignal.timeout(5000)});
       const result=await response.json() as QQLyrics;
-      return result.lyric||"[00:00.00]暂无歌词";
+      lyric = result.lyric || "[00:00.00]暂无歌词";
     }else{
       console.log("server不支持");
     }
-    return "[00:00.00]暂无歌词";
   }catch(error){
     console.error("歌词请求失败:", error);
     return "[00:00.00]暂无歌词";
   }
+  if (lyric !== "[00:00.00]暂无歌词" && lyric !== "[00:00.00]纯音乐，请欣赏") {
+    const responseToCache = new Response(lyric, {
+      headers: { 
+        "Cache-Control": "s-maxage=604800" 
+      },
+    });
+    await cache.put(cacheKey, responseToCache);
+  }
+  return lyric;
 }
 async function getQQUrl(songmid:string):Promise<string>{
   try{
