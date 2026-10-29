@@ -26,7 +26,7 @@ async function processInBatches<T,R>(items:T[],batchSize:number,processItem:(ite
 async function getLyrics(server:string,id:string):Promise<string>{
   try{
     if(server==="netease"){
-      const response=await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1&kv=1&tv=-1`,{headers:NETEASE_HEADERS,signal:AbortSignal.timeout(5000)});
+      const response=await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1&kv=1&tv=-1`,{headers:{...NETEASE_HEADERS,'cf-priority': '30/0'},signal:AbortSignal.timeout(5000)});
       const result=await response.json() as neteaseLyrics;
       if(result.nolyric){
         return "[00:00.00]纯音乐，请欣赏";
@@ -34,7 +34,7 @@ async function getLyrics(server:string,id:string):Promise<string>{
       return result?.lrc?.lyric||"[00:00.00]暂无歌词";
     }
     else if(server==="qq"){
-      const response=await fetch(`https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid=${id}&format=json&nobase64=1`,{headers:QQ_HEADERS,signal: AbortSignal.timeout(5000)});
+      const response=await fetch(`https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?songmid=${id}&format=json&nobase64=1`,{headers:{...QQ_HEADERS,'cf-priority': '30/0'},signal: AbortSignal.timeout(5000)});
       const result=await response.json() as QQLyrics;
       return result.lyric||"[00:00.00]暂无歌词";
     }else{
@@ -64,7 +64,7 @@ async function getQQUrl(songmid:string):Promise<string>{
     });
     const response=await fetch(`https://u.y.qq.com/cgi-bin/musicu.fcg`,{
       method:"POST",
-      headers:{...QQ_HEADERS,"Content-Type":"application/json"},
+      headers:{...QQ_HEADERS,"Content-Type":"application/json",'cf-priority': '20/1'},
       body,
       signal:AbortSignal.timeout(5000),
     });
@@ -87,7 +87,7 @@ async function getNeteaseList(data: any): Promise<musicList[]> {
     const chunk = trackIds.slice(i, i + BATCH).map((t) => ({ id: String(t.id) }));
     const response = await fetch(
       `https://music.163.com/api/v3/song/detail?c=${encodeURIComponent(JSON.stringify(chunk))}`,
-      { headers: NETEASE_HEADERS, signal: AbortSignal.timeout(8000) }
+      { headers: {...NETEASE_HEADERS,'cf-priority': '20/1'}, signal: AbortSignal.timeout(8000) }
     );
     const result = (await response.json()) as any;
     tracks.push(...(result.songs || []));
@@ -137,7 +137,7 @@ export default {
       if (server === "netease") {
         const response = await fetch(
           `https://music.163.com/api/v6/${type}/detail?id=${id}`,
-          { headers: NETEASE_HEADERS, signal: AbortSignal.timeout(8000) }
+          { headers: {...NETEASE_HEADERS,'cf-priority': '20/1'}, signal: AbortSignal.timeout(8000) }
         );
         data = (await response.json()) as any;
         result = {
@@ -152,7 +152,7 @@ export default {
       } else if (server === "qq" && type === "songlist") {
         const response = await fetch(
           `https://c.y.qq.com/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg?type=1&json=1&utf8=1&onlysong=0&disstid=${id}&g_tk=5381&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0`,
-          { headers: QQ_HEADERS, signal: AbortSignal.timeout(8000) }
+          { headers: {...QQ_HEADERS,'cf-priority': '20/1'}, signal: AbortSignal.timeout(8000) }
         );
         data = (await response.json()) as any;
         if (data.code !== 0 || !data.cdlist?.length) {
