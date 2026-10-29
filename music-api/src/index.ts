@@ -39,8 +39,6 @@ let lyric = "[00:00.00]暂无歌词";
     if(server==="netease"){
       const response=await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1&kv=1&tv=-1`,{headers:{...NETEASE_HEADERS,'cf-priority': '30/0'},signal:AbortSignal.timeout(5000)});
       const result=await response.json() as neteaseLyrics;
-      const rawText = await response.text();
-      console.log(`网易云源站返回[${id}]: ${rawText.substring(0, 50)}`);
       if(result.nolyric){
         return "[00:00.00]纯音乐，请欣赏";
       }
