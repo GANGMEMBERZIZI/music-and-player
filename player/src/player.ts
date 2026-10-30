@@ -110,8 +110,11 @@ class zPlayer extends HTMLElement{
                 console.error("按需获取单曲详情失败:", err);
             }
         }
+        console.log("当前正在播放的音频链接 (src):", song.src);
+        this.audio.crossOrigin="anonymous";
         this.audio.src=song.src||"";
-        this.currentLyrics=parseLRC(song.lrc||"");
+        this.audio.load();
+        this.currentLyrics = parseLRC(song.lrc || "");
         this.renderLyrics();
         if(this.isPlaying) {
             this.audio.play().catch(e=>console.log("自动播放错误:",e));
