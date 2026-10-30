@@ -111,7 +111,7 @@ class zPlayer extends HTMLElement{
             }
         }
         this.audio.crossOrigin = "anonymous";
-        this.audio.src = `https://api.zsaw.dpdns.org/api/audio/${song.id}`;
+        this.audio.src=song.src;
         this.currentLyrics=parseLRC(song.lrc);
         this.renderLyrics();
         if(this.isPlaying) {
