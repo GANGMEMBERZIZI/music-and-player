@@ -76,56 +76,48 @@ class zPlayer extends HTMLElement{
     lrcUl.style.transform=`translateY(-${offset}px)`;
 }
     //加载歌曲
-    private async loadMusic(index: number){
-        if(this.songsList.length === 0)
+    private async loadMusic(index:number){
+        if(this.songsList.length===0)
             return;
-        const song = this.songsList[index];
-        const server = this.getAttribute("server");
-        const title = this.shadowRoot?.querySelector<HTMLParagraphElement>(".title");
-        const author = this.shadowRoot?.querySelector<HTMLParagraphElement>(".author");
-        const cover = this.shadowRoot?.querySelector<HTMLImageElement>(".img");
-        if(title) title.innerText = song.title;
-        if(author) author.innerText = song.artist;
-        if(cover) cover.src = song.cover;
-        const lis = this.shadowRoot?.querySelectorAll(".musicLi");
+        const song=this.songsList[index];
+        const server=this.getAttribute("server");
+        const title=this.shadowRoot?.querySelector<HTMLParagraphElement>(".title");
+        const author=this.shadowRoot?.querySelector<HTMLParagraphElement>(".author");
+        const cover=this.shadowRoot?.querySelector<HTMLImageElement>(".img");
+        if(title) title.innerText=song.title;
+        if(author) author.innerText=song.artist;
+        if(cover) cover.src=song.cover;
+        const lis=this.shadowRoot?.querySelectorAll(".musicLi");
         if(lis){
-            lis.forEach((li, i) => {
-                if(i === index){
+            lis.forEach((li,i)=>{
+                if(i===index){
                     li.classList.add("active");
                 }else{
                     li.classList.remove("active");
                 }
             });
         }
-        if(!song.src || !song.lrc){
+        if(!song.src||!song.lrc){
             try{
-                const API_BASE = "https://api.zsaw.dpdns.org";
-                const targetUrl = `${API_BASE}/api/lyrics/${server}/${song.id}`;
-                console.log("正在请求单曲接口:", targetUrl);
-                const response = await fetch(targetUrl);
-                const json = await response.json();
-                console.log("后端返回的单曲数据:", json);
-                if (json.code === 200 && json.data) {
-                    song.src = json.data.src;
-                    song.lrc = json.data.lrc;
+                const API_BASE="https://api.zsaw.dpdns.org";
+                const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
+                const json=await response.json();
+                if (json.code===200) {
+                    song.src=json.data.src;
+                    song.lrc=json.data.lrc;
                 }
             }catch(err){
                 console.error("按需获取单曲详情失败:", err);
             }
         }
-        console.log("最终赋给 audio.src 的地址是:", song.src);
-        if (!song.src) {
-            console.error("错误：该歌曲的播放链接为空，无法播放！", song);
-            return;
-        }
-
-        this.audio.crossOrigin = "anonymous";
-        this.audio.src = song.src;
-        this.audio.load(); 
+        console.log("当前正在播放的音频链接 (src):", song.src);
+        this.audio.crossOrigin="anonymous";
+        this.audio.src=song.src||"";
+        this.audio.load();
         this.currentLyrics = parseLRC(song.lrc || "");
         this.renderLyrics();
         if(this.isPlaying) {
-            this.audio.play().catch(e => console.log("自动播放错误:", e));
+            this.audio.play().catch(e=>console.log("自动播放错误:",e));
         } 
     }
     //更改状态
