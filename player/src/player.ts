@@ -111,7 +111,7 @@ class zPlayer extends HTMLElement{
             }
         }
         console.log("当前正在播放的音频链接 (src):", song.src);
-        this.audio.src=song.src||"";
+        this.audio.src=song.src;
         this.audio.load();
         this.currentLyrics = parseLRC(song.lrc || "");
         this.renderLyrics();
