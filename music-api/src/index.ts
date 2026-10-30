@@ -118,8 +118,10 @@ async function getNeteaseList(data: any): Promise<musicList[]> {
         artist: element.ar.map((a: any) => a.name).join("/"),
         album: element.al.name,
         cover: element.al.picUrl,
-        src: `https://music.163.com/song/media/outer/url?id=${element.id}.mp3`,
-        lrc: await getLyrics("netease", String(element.id)),
+        // src: `https://music.163.com/song/media/outer/url?id=${element.id}.mp3`,
+        src:"",
+        // lrc: await getLyrics("netease", String(element.id)),
+        lrc:"",
         duration: element.dt,
       };
   })
@@ -133,76 +135,107 @@ async function getQQList(data: any): Promise<musicList[]>{
       artist: element.singer.map((s: any) => s.name).join("/"),
       album: element.albumname,
       cover: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${element.albummid}.jpg`,
-      src: await getQQUrl(element.songmid),
-      lrc: await getLyrics("qq", String(element.songmid)), 
+      // src: await getQQUrl(element.songmid),
+      src:"",
+      // lrc: await getLyrics("qq", String(element.songmid)),
+      lrc:"",
       duration: element.interval * 1000,
     };
   });
 }
-
 export default {
   async fetch(req: Request): Promise<Response> {
     if (req.method === "OPTIONS") {
-      return new Response(null, { headers: CORS_HEADERS });
+      return new Response(null,{ headers: CORS_HEADERS });
     }
-    const url = new URL(req.url);
-    const match = url.pathname.match(/^\/api\/music\/([^/]+)\/([^/]+)\/([^/]+)$/);
-    if (!match) {
-      return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
-    }
-    const [_, server, type, id] = match;
+    const url=new URL(req.url);
+    const pathname=url.pathname;
     try {
-      let data, result;
-      if (server === "netease") {
-        const response = await fetch(
-          `https://music.163.com/api/v6/${type}/detail?id=${id}`,
-          { headers: {...NETEASE_HEADERS,'cf-priority': '20/1'}, signal: AbortSignal.timeout(8000) }
-        );
-        data = (await response.json()) as any;
-        result = {
-          code: 200,
-          msg: "OK",
-          data: {
-            playlistName: data.playlist.name,
-            total: data.playlist.trackCount,
-            songs: await getNeteaseList(data),
-          },
-        };
-      } else if (server === "qq" && type === "songlist") {
-        const response = await fetch(
-          `https://c.y.qq.com/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg?type=1&json=1&utf8=1&onlysong=0&disstid=${id}&g_tk=5381&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0`,
-          { headers: {...QQ_HEADERS,'cf-priority': '20/1'}, signal: AbortSignal.timeout(8000) }
-        );
-        data = (await response.json()) as any;
-        if (data.code !== 0 || !data.cdlist?.length) {
-          return Response.json(
-            {
-              code: 403,
-              msg:
-                data.code === 10
+      const lyricMatch=pathname.match(/^\/api\/lyrics\/([^/]+)\/([^/]+)$/);
+      if (lyricMatch) {
+        const [_, server, id]=lyricMatch;
+        let result;
+        if (server==="netease") {
+          const src=`https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+          const lrc=await getLyrics(server, String(id));
+          result={
+            code:200,
+            msg:"OK",
+            data:{ src, lrc }
+          };
+        }else if(server === "qq") {
+          const src=await getQQUrl(id as string);
+          const lrc=await getLyrics("qq", String(id));
+          result={
+            code:200,
+            msg:"OK",
+            data:{ src, lrc }
+          };
+        } else{
+          return Response.json({ code: 400, msg: "不支持的 server", data: null }, { status: 400, headers: CORS_HEADERS });
+        }
+        return Response.json(result, { headers: CORS_HEADERS });
+      }
+
+      // /api/music/:server/:type/:id
+      const musicMatch = pathname.match(/^\/api\/music\/([^/]+)\/([^/]+)\/([^/]+)$/);
+      if (musicMatch) {
+        const [_, server, type, id] = musicMatch;
+        let data, result;
+
+        if (server === "netease") {
+          const response = await fetch(
+            `https://music.163.com/api/v6/${type}/detail?id=${id}`,
+            { headers: { ...NETEASE_HEADERS, 'cf-priority': '20/1' }, signal: AbortSignal.timeout(8000) }
+          );
+          data = (await response.json()) as any;
+          result = {
+            code: 200,
+            msg: "OK",
+            data: {
+              playlistName: data.playlist.name,
+              total: data.playlist.trackCount,
+              songs: await getNeteaseList(data),
+            },
+          };
+        } else if (server === "qq" && type === "songlist") {
+          const response = await fetch(
+            `https://c.y.qq.com/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg?type=1&json=1&utf8=1&onlysong=0&disstid=${id}&g_tk=5381&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0`,
+            { headers: { ...QQ_HEADERS, 'cf-priority': '20/1' }, signal: AbortSignal.timeout(8000) }
+          );
+          data = (await response.json()) as any;
+          if (data.code !== 0 || !data.cdlist?.length) {
+            return Response.json(
+              {
+                code: 403,
+                msg: data.code === 10
                   ? "该歌单是私密歌单或需要登录（QQ 返回 code 10），请换一个公开歌单 id"
                   : `QQ 歌单请求失败（code ${data.code}），请检查 id 是否正确`,
-              data: null,
+                data: null,
+              },
+              { status: 403, headers: CORS_HEADERS }
+            );
+          }
+          result = {
+            code: 200,
+            msg: "OK",
+            data: {
+              playlistName: data.cdlist[0].dissname,
+              total: data.cdlist[0].total_song_num,
+              songs: await getQQList(data),
             },
-            { status: 403, headers: CORS_HEADERS }
+          };
+        } else {
+          return Response.json(
+            { code: 400, msg: "不支持的参数", data: null },
+            { status: 400, headers: CORS_HEADERS }
           );
         }
-        result = {
-          code: 200,
-          msg: "OK",
-          data: {
-            playlistName: data.cdlist[0].dissname,
-            total: data.cdlist[0].total_song_num,
-            songs: await getQQList(data),
-          },
-        };
-      } else {
-        return Response.json(
-          { code: 400, msg: "不支持的参数", data: null },
-          { status: 400, headers: CORS_HEADERS }
-        );
+        return Response.json(result, { headers: CORS_HEADERS });
       }
-      return Response.json(result, { headers: CORS_HEADERS });
+
+      return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
+
     } catch (error) {
       console.error("音乐接口请求失败：", error);
       return Response.json(

@@ -76,11 +76,11 @@ class zPlayer extends HTMLElement{
     lrcUl.style.transform=`translateY(-${offset}px)`;
 }
     //加载歌曲
-    private loadMusic(index:number){
+    private async loadMusic(index:number){
         if(this.songsList.length===0)
             return;
         const song=this.songsList[index];
-        this.audio.src=song.src;
+        const server=this.getAttribute("server");
         const title=this.shadowRoot?.querySelector<HTMLParagraphElement>(".title");
         const author=this.shadowRoot?.querySelector<HTMLParagraphElement>(".author");
         const cover=this.shadowRoot?.querySelector<HTMLImageElement>(".img");
@@ -97,10 +97,24 @@ class zPlayer extends HTMLElement{
                 }
             });
         }
-        this.currentLyrics = parseLRC(song.lrc);
+        if(!song.src||!song.lrc){
+            try{
+                const API_BASE="https://api.zsaw.dpdns.org";
+                const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
+                const json=await response.json();
+                if (json.code===200) {
+                    song.src=json.data.src;
+                    song.lrc=json.data.lrc;
+                }
+            }catch(err){
+                console.error("按需获取单曲详情失败:", err);
+            }
+        }
+        this.audio.src=song.src||"";
+        this.currentLyrics=parseLRC(song.lrc||"");
         this.renderLyrics();
         if(this.isPlaying) {
-            this.audio.play();
+            this.audio.play().catch(e=>console.log("自动播放错误:",e));
         } 
     }
     //更改状态

@@ -119,8 +119,10 @@ async function getNeteaseList(data: any): Promise<musicList[]> {
         artist: element.ar.map((a: any) => a.name).join("/"),
         album: element.al.name,
         cover: element.al.picUrl,
-        src: `https://music.163.com/song/media/outer/url?id=${element.id}.mp3`,
-        lrc: await getLyrics("netease", String(element.id)),
+        // src: `https://music.163.com/song/media/outer/url?id=${element.id}.mp3`,
+        src:"",
+        // lrc: await getLyrics("netease", String(element.id)),
+        lrc:"",
         duration: element.dt,
       };
   })
@@ -129,13 +131,15 @@ async function getQQList(data: any): Promise<musicList[]>{
   const songlist = data.cdlist[0].songlist;
   return await processInBatches<any, musicList>(songlist,5,async (element: any) => {
     return {
-      id: String(element.songid),
+      id: String(element.songmid),
       title: element.songname,
       artist: element.singer.map((s: any) => s.name).join("/"),
       album: element.albumname,
       cover: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${element.albummid}.jpg`,
-      src: await getQQUrl(element.songmid),
-      lrc: await getLyrics("qq", String(element.songmid)), 
+      // src: await getQQUrl(element.songmid),
+      src:"",
+      // lrc: await getLyrics("qq", String(element.songmid)), 
+      lrc:"",
       duration: element.interval * 1000,
     };
   });
@@ -185,6 +189,39 @@ Bun.serve({
     }
     catch(error){
       console.error("音乐接口请求失败：", error);
+      return Response.json({code: 502,msg: error instanceof Error ? error.message : String(error),data: null,},{status: 502,headers: CORS_HEADERS,});
+    }
+  },
+  "/api/lyrics/:server/:id": async (req)=>{
+    let result;
+    try{
+      const {server,id}=req.params;
+      if (server==="netease"){
+        const src=`https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+        const lrc=await getLyrics(server,String(id));
+        result={
+          code:200,
+          msg:"OK",
+          data:{
+            src:src,
+            lrc:lrc
+          }
+        }
+      }else if (server==="qq"){
+        const src=await getQQUrl(id);
+        const lrc=await getLyrics("qq", String(id)); 
+        result={
+          code:200,
+          msg:"OK",
+          data:{
+            src:src,
+            lrc:lrc
+          }
+        }
+      }
+      return Response.json(result,{headers:CORS_HEADERS}) 
+    }catch(error){
+      console.log("请求歌词失败",error);
       return Response.json({code: 502,msg: error instanceof Error ? error.message : String(error),data: null,},{status: 502,headers: CORS_HEADERS,});
     }
   }
