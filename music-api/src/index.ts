@@ -144,7 +144,7 @@ async function getQQList(data: any): Promise<musicList[]>{
   });
 }
 export default {
-  async fetch(req: Request,env:any): Promise<Response> {
+  async fetch(req: Request): Promise<Response> {
     if (req.method === "OPTIONS") {
       return new Response(null,{ headers: CORS_HEADERS });
     }
@@ -156,25 +156,7 @@ export default {
         const [_, server, id]=lyricMatch;
         let result;
         if (server==="netease") {
-          let src=`https://music.163.com/song/media/outer/url?id=${id}.mp3`;
-          try {
-            const songDetailRes = await fetch(
-              `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=999000`,
-              {
-                headers: {
-                  ...NETEASE_HEADERS,
-                  "Cookie": env.NETEASE_COOKIE || "",
-                },
-              }
-            );
-            const songJson = (await songDetailRes.json()) as any;
-            console.log("网易云返回的原始数据:", JSON.stringify(songJson));
-            if (songJson.code === 200 && songJson.data?.[0]?.url) {
-              src = songJson.data[0].url;
-            }
-          } catch (e) {
-            console.error("网易云VIP直链获取失败,使用默认外链", e);
-          }
+          const src=`https://music.163.com/song/media/outer/url?id=${id}.mp3`;
           const lrc=await getLyrics(server, String(id));
           result={
             code:200,

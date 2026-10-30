@@ -148,7 +148,7 @@ async function getQQList(data) {
 }
 __name(getQQList, "getQQList");
 var src_default = {
-  async fetch(req, env) {
+  async fetch(req) {
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: CORS_HEADERS });
     }
@@ -160,25 +160,7 @@ var src_default = {
         const [_, server, id] = lyricMatch;
         let result;
         if (server === "netease") {
-          let src = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
-          try {
-            const songDetailRes = await fetch(
-              `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=999000`,
-              {
-                headers: {
-                  ...NETEASE_HEADERS,
-                  "Cookie": env.NETEASE_COOKIE || ""
-                }
-              }
-            );
-            const songJson = await songDetailRes.json();
-            console.log("\u7F51\u6613\u4E91\u8FD4\u56DE\u7684\u539F\u59CB\u6570\u636E:", JSON.stringify(songJson));
-            if (songJson.code === 200 && songJson.data?.[0]?.url) {
-              src = songJson.data[0].url;
-            }
-          } catch (e) {
-            console.error("\u7F51\u6613\u4E91VIP\u76F4\u94FE\u83B7\u53D6\u5931\u8D25,\u4F7F\u7528\u9ED8\u8BA4\u5916\u94FE", e);
-          }
+          const src = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
           const lrc = await getLyrics(server, String(id));
           result = {
             code: 200,
