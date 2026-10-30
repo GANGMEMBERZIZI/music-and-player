@@ -97,22 +97,31 @@ class zPlayer extends HTMLElement{
                 }
             });
         }
-        if(!song.src||!song.lrc){
+        if(!song.src || !song.lrc){
             try{
-                const API_BASE="https://api.zsaw.dpdns.org";
-                const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
-                const json=await response.json();
-                if (json.code===200) {
-                    song.src=json.data.src;
-                    song.lrc=json.data.lrc;
+                const API_BASE = "https://api.zsaw.dpdns.org";
+                const targetUrl = `${API_BASE}/api/lyrics/${server}/${song.id}`;
+                console.log("正在请求单曲接口:", targetUrl);
+                const response = await fetch(targetUrl);
+                const json = await response.json();
+                console.log("后端返回的单曲数据:", json); 
+                if (json.code === 200 && json.data) {
+                    song.src = json.data.src;
+                    song.lrc = json.data.lrc;
+                } else {
+                    console.error("后端返回状态码异常:", json);
                 }
             }catch(err){
                 console.error("按需获取单曲详情失败:", err);
             }
         }
-        console.log("当前正在播放的音频链接 (src):", song.src);
-        this.audio.crossOrigin="anonymous";
-        this.audio.src=song.src||"";
+        console.log("最终赋给 audio.src 的地址是:", song.src); 
+        if (!song.src) {
+            console.error("致命错误：song.src 为空，浏览器无法加载！");
+            return;
+        }
+        this.audio.crossOrigin = "anonymous";
+        this.audio.src = song.src;
         this.audio.load();
         this.currentLyrics = parseLRC(song.lrc || "");
         this.renderLyrics();
