@@ -111,13 +111,34 @@ class zPlayer extends HTMLElement{
             }
         }
         console.log("当前正在播放的音频链接 (src):", song.src);
-        this.audio.src=song.src;
-        this.audio.load();
         this.currentLyrics = parseLRC(song.lrc || "");
         this.renderLyrics();
+        if(!song.src){
+            console.warn(`暂无可用音源，跳过播放: ${song.title}`);
+            this.isPlaying = false;
+            this.render();
+            return;
+        }
+        this.audio.src=song.src;
+        this.audio.load();
         if(this.isPlaying) {
-            this.audio.play().catch(e=>console.log("自动播放错误:",e));
-        } 
+            this.safePlay();
+        }
+    }
+    private async safePlay(): Promise<void> {
+        if (!this.audio.src) {
+            console.warn("暂无可用音源，无法播放");
+            this.isPlaying = false;
+            this.render();
+            return;
+        }
+        try {
+            await this.audio.play();
+        } catch (e) {
+            console.error("播放失败:", e);
+            this.isPlaying = false;
+            this.render();
+        }
     }
     //更改状态
     private ChangeModule(){
@@ -128,7 +149,7 @@ class zPlayer extends HTMLElement{
         start?.addEventListener("click",()=>{
             this.isPlaying=!this.isPlaying;
             if(this.isPlaying){
-                this.audio.play();
+                this.safePlay();
             }else{
                 this.audio.pause();
             }
@@ -210,7 +231,7 @@ class zPlayer extends HTMLElement{
             switch (this.currentMode) {
                 case "loop":
                     this.audio.currentTime = 0;
-                    this.audio.play();
+                    this.safePlay();
                     break;
                 case "random":
                     this.currentIndex = getRandomIntInclusive(0, totals - 1);
