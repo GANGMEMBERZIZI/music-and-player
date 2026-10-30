@@ -110,6 +110,7 @@ class zPlayer extends HTMLElement{
                 console.error("按需获取单曲详情失败:", err);
             }
         }
+        this.audio.crossOrigin = "anonymous";
         this.audio.src=song.src;
         this.currentLyrics=parseLRC(song.lrc);
         this.renderLyrics();
