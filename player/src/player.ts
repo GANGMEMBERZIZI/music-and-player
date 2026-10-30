@@ -10,7 +10,6 @@ class zPlayer extends HTMLElement{
     private songsList:musicList[]=[];
     private currentIndex:number=0;
     private isDragging: boolean = false;
-    private errorCount:number=0;
     private currentLyrics: lyrics[] = [];
     static get observedAttributes() {
        return ["server","type","id","fixed","autoplay","order"];
@@ -103,7 +102,7 @@ class zPlayer extends HTMLElement{
                 const API_BASE="https://api.zsaw.dpdns.org";
                 const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
                 const json=await response.json();
-                if (json.code===200){
+                if (json.code===200) {
                     song.src=json.data.src;
                     song.lrc=json.data.lrc;
                 }
@@ -114,9 +113,9 @@ class zPlayer extends HTMLElement{
         this.audio.src=song.src||"";
         this.currentLyrics=parseLRC(song.lrc||"");
         this.renderLyrics();
-        if(this.isPlaying && song.src) {
+        if(this.isPlaying) {
             this.audio.play().catch(e=>console.log("自动播放错误:",e));
-        }
+        } 
     }
     //更改状态
     private ChangeModule(){
@@ -127,9 +126,7 @@ class zPlayer extends HTMLElement{
         start?.addEventListener("click",()=>{
             this.isPlaying=!this.isPlaying;
             if(this.isPlaying){
-                if(this.audio.src){
-                    this.audio.play().catch(e=>console.log("播放错误:",e));
-                }
+                this.audio.play();
             }else{
                 this.audio.pause();
             }
@@ -188,7 +185,6 @@ class zPlayer extends HTMLElement{
             this.isDragging = false;
         });
         this.audio.addEventListener("loadedmetadata",()=>{
-            this.errorCount=0;
             if(controller){
                 controller.max=String(this.audio.duration);
             }
@@ -201,17 +197,6 @@ class zPlayer extends HTMLElement{
         });
         this.audio.addEventListener("seeked",()=>{
             this.updateLyricHighlight();
-        });
-        this.audio.addEventListener("error",()=>{
-            if(!this.audio.src) return;
-            this.errorCount++;
-            if(this.errorCount>this.songsList.length) return;
-            console.error("音频加载失败:",this.audio.error?.message||this.audio.error?.code);
-            const totals=this.songsList.length;
-            if(totals>0){
-                this.currentIndex=(this.currentIndex+1)%totals;
-                this.loadMusic(this.currentIndex);
-            }
         });
         controller?.addEventListener("input", (e)=>{
             const val=(e.target as HTMLInputElement).value;
