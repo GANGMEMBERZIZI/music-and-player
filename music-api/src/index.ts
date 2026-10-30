@@ -98,6 +98,16 @@ async function getQQUrl(songmid:string):Promise<string>{
     return "";
   }
 }
+async function getNeteaseUrl(id:string):Promise<string>{
+  try{
+    const response=await fetch(`https://music.163.com/api/song/enhance/player/url?id=${id}&ids=%5B${id}%5D&br=320000`,{headers:{...NETEASE_HEADERS,'cf-priority':'20/1'},signal:AbortSignal.timeout(5000)});
+    const result=await response.json() as any;
+    return result?.data?.[0]?.url ?? "";
+  }catch(error){
+    console.error("网易云播放地址获取失败:",error);
+    return "";
+  }
+}
 async function getNeteaseList(data: any): Promise<musicList[]> {
   const trackIds: { id: number }[] = data.playlist.trackIds || [];
   const BATCH = 100;
@@ -130,7 +140,7 @@ async function getQQList(data: any): Promise<musicList[]>{
   const songlist = data.cdlist[0].songlist;
   return await processInBatches<any, musicList>(songlist,5,async (element: any) => {
     return {
-      id: String(element.songid),
+      id: String(element.songmid),
       title: element.songname,
       artist: element.singer.map((s: any) => s.name).join("/"),
       album: element.albumname,
@@ -156,7 +166,7 @@ export default {
         const [_, server, id]=lyricMatch;
         let result;
         if (server==="netease") {
-          const src=`https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+          const src=await getNeteaseUrl(String(id));
           const lrc=await getLyrics(server, String(id));
           result={
             code:200,
