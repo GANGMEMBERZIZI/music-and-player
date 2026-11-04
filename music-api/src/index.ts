@@ -1,4 +1,4 @@
-import type {musicList,QQLyrics,neteaseLyrics} from "../type.js";
+import type {SongItem,QQVkeyResponse,NeteaseSongResponse,NeteasePlaylistResponse,QQPlaylistResponse,QQLyrics,NeteaseLyrics, MusicData, NeteaseSong, QQSong} from "../type.js";
 const NETEASE_HEADERS={
   "User-Agent":
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -32,13 +32,13 @@ async function getLyrics(server:string,id:string):Promise<string>{
     return await cacheResponse.text();
   }
 }catch(error){
-
+  console.error(error);
 }
 let lyric = "[00:00.00]暂无歌词";
   try{
     if(server==="netease"){
       const response=await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1&kv=1&tv=-1`,{headers:{...NETEASE_HEADERS,'cf-priority': '30/0'},signal:AbortSignal.timeout(5000)});
-      const result=await response.json() as neteaseLyrics;
+      const result=await response.json() as NeteaseLyrics;
       if(result.nolyric){
         return "[00:00.00]纯音乐，请欣赏";
       }
@@ -87,7 +87,7 @@ async function getQQUrl(songmid:string):Promise<string>{
       body,
       signal:AbortSignal.timeout(5000),
     });
-    const result=await response.json()as any;
+    const result:QQVkeyResponse=await response.json();
     const data=result?.req_0?.data;
     const purl=data?.midurlinfo?.[0]?.purl;
     if(!purl) return "";
@@ -98,48 +98,77 @@ async function getQQUrl(songmid:string):Promise<string>{
     return "";
   }
 }
-async function getNeteaseList(data: any): Promise<musicList[]> {
-  const trackIds: { id: number }[] = data.playlist.trackIds || [];
+async function getNeteaseList(data: NeteasePlaylistResponse): Promise<SongItem[]> {
+  if (!data.playlist){
+    console.error("不存在data.playlist");
+    return [{
+        id:"",
+        title: "",
+        artist: "",
+        album: "",
+        cover: "",
+        src:"",
+        lrc:"",
+        duration: 0,
+
+    }];
+  }
+  const trackIds: readonly { readonly id: number }[] = data.playlist.trackIds || [];
   const BATCH = 100;
-  const tracks: any[] = [];
+  const tracks:NeteaseSong[] = [];
   for (let i = 0; i < trackIds.length; i += BATCH) {
     const chunk = trackIds.slice(i, i + BATCH).map((t) => ({ id: String(t.id) }));
     const response = await fetch(
       `https://music.163.com/api/v3/song/detail?c=${encodeURIComponent(JSON.stringify(chunk))}`,
       { headers: {...NETEASE_HEADERS,'cf-priority': '20/1'}, signal: AbortSignal.timeout(8000) }
     );
-    const result = (await response.json()) as any;
+    const result:NeteaseSongResponse=await response.json();
     tracks.push(...(result.songs || []));
   }
-  return await processInBatches<any,musicList>(tracks,5,async(element: any)=>{
+  return await processInBatches<NeteaseSong,SongItem>(tracks,5,async(element:NeteaseSong)=>{
     return {
         id:String(element.id),
         title: element.name,
-        artist: element.ar.map((a: any) => a.name).join("/"),
-        album: element.al.name,
-        cover: element.al.picUrl,
+        artist: element.ar?.map((a) => a.name).join("/")??"未知歌手",
+        album: element.al?.name??"",
+        cover: element.al?.picUrl??"",
         // src: `https://music.163.com/song/media/outer/url?id=${element.id}.mp3`,
         src:"",
         // lrc: await getLyrics("netease", String(element.id)),
         lrc:"",
-        duration: element.dt,
+        duration: element.dt??0,
       };
   })
 }
-async function getQQList(data: any): Promise<musicList[]>{
-  const songlist = data.cdlist[0].songlist;
-  return await processInBatches<any, musicList>(songlist,5,async (element: any) => {
+async function getQQList(data:QQPlaylistResponse): Promise<SongItem[]>{
+  if (!data.cdlist||!data.cdlist[0]||!data.cdlist[0].songlist){
+    console.error("不存在data.cdlist及songList");
+    return [{
+        id:"",
+        title: "",
+        artist: "",
+        album: "",
+        cover: "",
+        src:"",
+        lrc:"",
+        duration: 0,
+
+    }];
+  }
+  const songlist:QQSong[]=[];
+  songlist.push(...data.cdlist[0].songlist);
+  return await processInBatches<QQSong, SongItem>(songlist,5,async (element:QQSong) => {
     return {
       id: String(element.songmid),
       title: element.songname,
-      artist: element.singer.map((s: any) => s.name).join("/"),
-      album: element.albumname,
+      artist: element.singer?.map((s) => s.name).join("/")||"未知歌手", //可能为空
+      album: element.albumname??"",
       cover: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${element.albummid}.jpg`,
       // src: await getQQUrl(element.songmid),
       src:"",
-      // lrc: await getLyrics("qq", String(element.songmid)),
+      // lrc: await getLyrics("qq", String(element.songmid)), 
       lrc:"",
-      duration: element.interval * 1000,
+      duration: (element.interval??0) * 1000 
     };
   });
 }
@@ -181,20 +210,22 @@ export default {
       const musicMatch = pathname.match(/^\/api\/music\/([^/]+)\/([^/]+)\/([^/]+)$/);
       if (musicMatch) {
         const [_, server, type, id] = musicMatch;
-        let data, result;
-
+        let result:MusicData|undefined;
         if (server === "netease") {
           const response = await fetch(
             `https://music.163.com/api/v6/${type}/detail?id=${id}`,
             { headers: { ...NETEASE_HEADERS, 'cf-priority': '20/1' }, signal: AbortSignal.timeout(8000) }
           );
-          data = (await response.json()) as any;
+          const data = (await response.json())as NeteasePlaylistResponse;
+          if (data.code !== 200 || !data.playlist) {
+            return Response.json({ code: 400, msg: "网易云歌单获取失败", data: null },{ status: 400, headers: CORS_HEADERS });
+          }
           result = {
             code: 200,
             msg: "OK",
             data: {
               playlistName: data.playlist.name,
-              total: data.playlist.trackCount,
+              total: data.playlist.trackCount||0,
               songs: await getNeteaseList(data),
             },
           };
@@ -203,8 +234,8 @@ export default {
             `https://c.y.qq.com/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg?type=1&json=1&utf8=1&onlysong=0&disstid=${id}&g_tk=5381&loginUin=0&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0`,
             { headers: { ...QQ_HEADERS, 'cf-priority': '20/1' }, signal: AbortSignal.timeout(8000) }
           );
-          data = (await response.json()) as any;
-          if (data.code !== 0 || !data.cdlist?.length) {
+          const data = (await response.json()) as QQPlaylistResponse;
+          if (data.code !== 0 || !data.cdlist) {
             return Response.json(
               {
                 code: 403,
@@ -216,12 +247,16 @@ export default {
               { status: 403, headers: CORS_HEADERS }
             );
           }
+          let sena=data.cdlist[0];
+          if (!sena){
+          return Response.json({code:403,msg:"错误不存在cdlist[0]",data:null},{status:403,headers:CORS_HEADERS});
+        }
           result = {
             code: 200,
             msg: "OK",
             data: {
-              playlistName: data.cdlist[0].dissname,
-              total: data.cdlist[0].total_song_num,
+              playlistName:sena.dissname || "未知歌单",
+              total:sena.total_song_num ||0,
               songs: await getQQList(data),
             },
           };
