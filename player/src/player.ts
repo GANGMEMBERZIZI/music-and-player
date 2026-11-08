@@ -2,15 +2,17 @@ import cssString from "./player.css?inline";
 import {PlayerBuild} from "./constructor.js";
 import {getRandomIntInclusive,formate} from "./tool.js";
 import {parseLRC} from "./lyrics.js";
-import type {musicData,musicList,lyrics} from "./types.js";
+import type {MusicData,MusicList,Lyrics,MusicLyrics} from "./types.js";
+import {safeAsyncRun} from "./Error.js";
+import type {Result} from "./Error.js";
 class zPlayer extends HTMLElement{
     private isPlaying:boolean=this.getAttribute('autoplay')==='true';
     private currentMode=this.getAttribute('order');
     private audio=new Audio();
-    private songsList:musicList[]=[];
+    private songsList:MusicList[]=[];
     private currentIndex:number=0;
     private isDragging: boolean = false;
-    private currentLyrics: lyrics[] = [];
+    private currentLyrics: Lyrics[] = [];
     static get observedAttributes() {
        return ["server","type","id","fixed","autoplay","order"];
     }
@@ -33,7 +35,6 @@ class zPlayer extends HTMLElement{
     }
     //解析数据
     private async initData(){
-        try{
             const server=this.getAttribute("server");
             const type=this.getAttribute("type");
             const id=this.getAttribute("id");
@@ -41,17 +42,20 @@ class zPlayer extends HTMLElement{
                 console.log("不存在属性");
                 return;
             }
-            const API_BASE = "https://api.zsaw.dpdns.org";     
-            const response = await fetch(`${API_BASE}/api/music/${server}/${type}/${id}`);
-            const result:musicData=await response.json();
-            this.songsList=result.data.songs;
+            const API_BASE = "https://api.zsaw.dpdns.org";
+            const result:Result<MusicData,Error>=await safeAsyncRun(async()=>{
+                const response = await fetch(`${API_BASE}/api/music/${server}/${type}/${id}`);
+                const data:MusicData=await response.json();
+                return data;
+            });
+            if (!result.ok){
+                console.log("fetch失败:");
+                return;
+            }
+            this.songsList=result.value.data.songs;
             if(this.songsList.length>0){
                 this.loadMusic(this.currentIndex);
             }
-        }
-        catch(error){
-            console.log(error);
-        }
     }
     private updateLyricHighlight(time?: number){
     if (this.currentLyrics.length===0) return;
@@ -98,16 +102,19 @@ class zPlayer extends HTMLElement{
             });
         }
         if(!song.src||!song.lrc){
-            try{
-                const API_BASE="https://api.zsaw.dpdns.org";
+            const API_BASE="https://api.zsaw.dpdns.org";
+            const result:Result<MusicLyrics,Error>=await safeAsyncRun(async()=>{
                 const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
-                const json=await response.json();
-                if (json.code===200) {
-                    song.src=json.data.src;
-                    song.lrc=json.data.lrc;
-                }
-            }catch(err){
-                console.error("按需获取单曲详情失败:", err);
+                const data=await response.json();
+                return data;
+            });
+            if (!result.ok){
+                console.log("歌词获取失败");
+                return;
+            }
+            if (result.value.code===200) {
+                song.src=result.value.data.src;
+                song.lrc=result.value.data.lrc;
             }
         }
         this.audio.src=song.src;

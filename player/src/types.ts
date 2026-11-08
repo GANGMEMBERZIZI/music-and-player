@@ -1,14 +1,16 @@
-export interface musicData{
-    code:number;
-    msg:string;
-    data:musicInfo;
+export interface ApiResponse<T>{
+    readonly code:number,
+    readonly msg:string,
+    readonly data:Readonly<T>
 }
-export interface musicInfo{
+export type MusicData=ApiResponse<MusicInfo>;
+export type MusicLyrics=ApiResponse<{src:string,lrc:string}>;
+export interface MusicInfo{
     playlistName:string;
     total:number;
-    songs:[musicList];
+    songs:[MusicList];
 }
-export interface musicList{
+export interface MusicList{
     id:string;
     title:string;
     artist:string;
@@ -18,7 +20,7 @@ export interface musicList{
     lrc:string; 
     duration:number;
 }
-export interface lyrics{
+export interface Lyrics{
     time:number;
     text:string;
 }

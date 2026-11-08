@@ -1,6 +1,6 @@
-import type {lyrics} from "./types.js";
-export function parseLRC(lrc:string):lyrics[]{
-    let result:lyrics[]=[];
+import type {Lyrics} from "./types.js";
+export function parseLRC(lrc:string):Lyrics[]{
+    let result:Lyrics[]=[];
     let lrcArr=lrc.split("\n");
     lrcArr.forEach(element=>{
         const match=element.match(/\[(\d{2}):(\d{2}(?:\.\d+)?)\](.*)/);
