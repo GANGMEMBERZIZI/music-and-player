@@ -5,6 +5,7 @@ export interface ApiResponse<T>{
 }
 export type MusicData=ApiResponse<MusicInfo>;
 export type MusicLyrics=ApiResponse<{src:string,lrc:string}>;
+export type Mode='loop'|'random'|'ordering';
 export interface MusicInfo{
     playlistName:string;
     total:number;

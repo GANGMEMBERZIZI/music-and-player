@@ -105,7 +105,7 @@ class zPlayer extends HTMLElement{
             const API_BASE="https://api.zsaw.dpdns.org";
             const result:Result<MusicLyrics,Error>=await safeAsyncRun(async()=>{
                 const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
-                const data=await response.json();
+                const data:MusicLyrics=await response.json();
                 return data;
             });
             if (!result.ok){
