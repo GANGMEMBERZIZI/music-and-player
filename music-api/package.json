@@ -15,6 +15,7 @@
     "typescript": "^7"
   },
   "dependencies": {
+    "@unblockneteasemusic/server": "^0.28.0",
     "figlet": "^1.11.4"
   }
 }
