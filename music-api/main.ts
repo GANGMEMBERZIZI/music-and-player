@@ -209,7 +209,7 @@ Bun.serve({
           });
           const data = (await response.json()) as NeteasePlaylistResponse;
           if (data.code !== 200 || !data.playlist) {
-            throw new Error("网易云歌单获取失败");
+            throw new Error(`网易云歌单获取失败 code=${data.code}`);
           }
           return {
             code: 200,
