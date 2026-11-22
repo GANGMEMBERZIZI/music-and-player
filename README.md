@@ -197,5 +197,5 @@ GET /api/lyrics/:server/:id
 
 ## TODOList
 
-1. VIP歌曲全部解析
+1. VIP歌曲全部解析 (原生Bun+render部分)
 2. 修复bug

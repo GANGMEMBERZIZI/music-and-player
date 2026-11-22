@@ -42,8 +42,8 @@ class zPlayer extends HTMLElement{
                 console.log("不存在属性");
                 return;
             }
-            const API_BASE = "https://music-api-8ivs.onrender.com";
-            // const API_BASE = "https://api.zsaw.dpdns.org";
+            // const API_BASE = "https://music-api-8ivs.onrender.com";
+            const API_BASE = "https://api.zsaw.dpdns.org";
             const result:Result<MusicData,Error>=await safeAsyncRun(async()=>{
                 const response = await fetch(`${API_BASE}/api/music/${server}/${type}/${id}`);
                 const data:MusicData=await response.json();
@@ -103,8 +103,8 @@ class zPlayer extends HTMLElement{
             });
         }
         if(!song.src||!song.lrc){
-            const API_BASE="https://music-api-8ivs.onrender.com";
-            // const API_BASE="https://api.zsaw.dpdns.org";
+            // const API_BASE="https://music-api-8ivs.onrender.com";
+            const API_BASE="https://api.zsaw.dpdns.org";
             const result:Result<MusicLyrics,Error>=await safeAsyncRun(async()=>{
                 const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
                 const data:MusicLyrics=await response.json();

@@ -201,6 +201,16 @@ export default {
       const musicMatch = pathname.match(/^\/api\/music\/([^/]+)\/([^/]+)\/([^/]+)$/);
       if (musicMatch) {
         const [_, server, type, id] = musicMatch;
+        const forceRefresh = url.searchParams.get("refresh") === "1";
+        const cache = caches.default;
+        const cacheKey = new Request(`https://music-cache.local/playlist/${server}/${type}/${id}`);
+        if (!forceRefresh) {
+          const cachedRes = await safeAsyncRun(() => cache.match(cacheKey));
+          if (cachedRes.ok && cachedRes.value) {
+            return cachedRes.value;
+          }
+        }
+        let result: MusicData;
         if (server === "netease") {
           const response = await fetch(
             `https://music.163.com/api/v6/${type}/detail?id=${id}`,
@@ -210,7 +220,7 @@ export default {
           if (data.code !== 200 || !data.playlist) {
             return Response.json({ code: 400, msg: "网易云歌单获取失败", data: null }, { status: 400, headers: CORS_HEADERS });
           }
-          const result = {
+          result = {
             code: 200,
             msg: "OK",
             data: {
@@ -219,7 +229,6 @@ export default {
               songs: await getNeteaseList(data),
             },
           };
-          return Response.json(result, { headers: CORS_HEADERS });
         } 
         else if (server === "qq" && type === "songlist") {
           const response = await fetch(
@@ -243,7 +252,7 @@ export default {
           if (!sena) {
             return Response.json({ code: 403, msg: "错误不存在cdlist[0]", data: null }, { status: 403, headers: CORS_HEADERS });
           }
-          const result = {
+          result = {
             code: 200,
             msg: "OK",
             data: {
@@ -252,13 +261,21 @@ export default {
               songs: await getQQList(data),
             },
           };
-          return Response.json(result, { headers: CORS_HEADERS });
         } 
         else {
           return Response.json({ code: 400, msg: "不支持的参数", data: null }, { status: 400, headers: CORS_HEADERS });
         }
+        const response = Response.json(result, {
+          headers: {
+            ...CORS_HEADERS,
+            "Cache-Control": "s-maxage=21600",
+          },
+        });
+        if (result.data && result.data.songs.length > 0 && result.data.songs[0]?.id !== "") {
+          await safeAsyncRun(() => cache.put(cacheKey, response.clone()));
+        }
+        return response;
       }
-
       return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
     });
     if (!routeResult.ok) {
