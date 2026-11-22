@@ -111,7 +111,7 @@ async function getNeteaseListUrl(id:string):Promise<string>{
     if (songData?.url && !songData?.freeTrialInfo){
      return songData.url.replace(/^http:\/\//i, "https://");
     }else{
-    const unblockResult = await match(Number(id), ["pyncmd","bilibili","youtube"]);
+    const unblockResult = await match(Number(id), ["bilibili","youtube"]);
     if (unblockResult?.url) {
       return unblockResult.url.replace(/^http:\/\//i, "https://");
     }
