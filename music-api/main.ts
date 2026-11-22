@@ -1,4 +1,4 @@
-import type {SongItem,QQVkeyResponse,NeteaseSongResponse,NeteasePlaylistResponse,QQPlaylistResponse,QQLyrics,NeteaseLyrics, MusicData, NeteaseSong, QQSong,NeteaseVip} from "./type.js";
+import type {SongItem,QQVkeyResponse,NeteaseSongResponse,NeteasePlaylistResponse,QQPlaylistResponse,QQLyrics,NeteaseLyrics, MusicData, NeteaseSong, QQSong,NeteaseVip, MusicInfo} from "./type.js";
 import match from "@unblockneteasemusic/server";
 import {safeAsyncRun,safeRun} from "./Error.js";
 import {ResultHandler} from "./Error.js";
@@ -21,6 +21,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 const lyricCache=new Map<string,{data:string,date:number}>();
+const playlistCache=new Map<string,{data:MusicData,date:number}>();
 //分批处理限制并发
 async function processInBatches<T,R>(items:T[],batchSize:number,processItem:(item:T)=>Promise<R>):Promise<R[]>{
   let result:R[]=[];
@@ -201,7 +202,14 @@ Bun.serve({
   routes: {
     "/api/music/:server/:type/:id": async (req) => {
       const { server, type, id } = req.params;
+      const cacheKey=`${server}-${type}-${id}`;
+      const forceRefresh = new URL(req.url).searchParams.get("refresh") === "1";
+      const cached=playlistCache.get(cacheKey);
+      if (!forceRefresh && cached && cached.date > Date.now()){
+        return Response.json(cached.data, { headers: CORS_HEADERS });
+      }
       const apiResult = await safeAsyncRun(async (): Promise<MusicData> => {
+        let finalList: MusicData;
         if (server === "netease") {
           const response = await fetch(`https://music.163.com/api/v6/${type}/detail?id=${id}`, {
             headers: { ...NETEASE_HEADERS, 'cf-priority': '20/1' },
@@ -211,7 +219,7 @@ Bun.serve({
           if (data.code !== 200 || !data.playlist) {
             throw new Error(`网易云歌单获取失败 code=${data.code}`);
           }
-          return {
+          finalList={
             code: 200,
             msg: "OK",
             data: {
@@ -230,7 +238,7 @@ Bun.serve({
             throw new Error(data.code === 10 ? "私密歌单或需要登录" : `QQ 歌单请求失败（code ${data.code}）`);
           }
           const sena = data.cdlist[0];
-          return {
+          finalList={
             code: 200,
             msg: "OK",
             data: {
@@ -242,7 +250,18 @@ Bun.serve({
         } else {
           throw new Error("不支持的 server 或请求类型");
         }
+      if (finalList.data && finalList.data.songs.length > 0) {
+      if (playlistCache.size >= 50) {
+        const firstKey = playlistCache.keys().next().value;
+        if (firstKey) playlistCache.delete(firstKey);
+      }
+      playlistCache.set(cacheKey, {
+        data: finalList,
+        date: Date.now() + 6 * 60 * 60 * 1000, 
       });
+    }
+    return finalList;
+  });
       if (!apiResult.ok) {
         return Response.json(
           { code: 502, msg: apiResult.error.message, data: null },
@@ -276,6 +295,7 @@ Bun.serve({
         { code: 200, msg: "OK", data: lyricResult.value },
         { headers: CORS_HEADERS }
       );
-    }
+    },
+  "/api/health": () => new Response("ok", { headers: CORS_HEADERS }),    
   }
 });
