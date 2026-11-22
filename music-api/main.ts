@@ -8,7 +8,7 @@ const NETEASE_HEADERS = {
   Referer: "https://music.163.com/",
   "X-Real-IP": "211.161.244.70",
   "X-Forwarded-For": "211.161.244.70",
-  Cookie: "os=pc; appver=2.9.7",
+  Cookie:Bun.env.NETEASE_COOKIE||"os=pc; appver=2.9.7",
 };
 const QQ_HEADERS={
   "User-Agent":
