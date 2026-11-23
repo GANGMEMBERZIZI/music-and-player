@@ -7,10 +7,11 @@ import {safeAsyncRun} from "./Error.js";
 import type {Result} from "./Error.js";
 class zPlayer extends HTMLElement{
     private isPlaying:boolean=this.getAttribute('autoplay')==='true';
-    private currentMode=this.getAttribute('order');
+    private currentMode=this.getAttribute('order')||'ordering';
     private audio=new Audio();
     private songsList:MusicList[]=[];
     private currentIndex:number=0;
+    private API_BASE=`https://music-api-8ivs.onrender.com`;
     private isDragging: boolean = false;
     private currentLyrics: Lyrics[] = [];
     static get observedAttributes() {
@@ -20,6 +21,12 @@ class zPlayer extends HTMLElement{
         super();
     }
     async connectedCallback(){
+        if (!document.querySelector('meta[name="referrer"]')) {
+            const meta = document.createElement("meta");
+            meta.name = "referrer";
+            meta.content = "no-referrer";
+            document.head.appendChild(meta);
+        }
         const shadow=this.attachShadow({mode:"open"});
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(cssString);
@@ -42,10 +49,10 @@ class zPlayer extends HTMLElement{
                 console.log("不存在属性");
                 return;
             }
-            const API_BASE = "https://music-api-8ivs.onrender.com";
+            // const API_BASE = "https://music-api-8ivs.onrender.com";
             // const API_BASE = "https://api.zsaw.dpdns.org";
             const result:Result<MusicData,Error>=await safeAsyncRun(async()=>{
-                const response = await fetch(`${API_BASE}/api/music/${server}/${type}/${id}`);
+                const response = await fetch(`${this.API_BASE}/api/music/${server}/${type}/${id}`);
                 const data:MusicData=await response.json();
                 return data;
             });
@@ -103,10 +110,10 @@ class zPlayer extends HTMLElement{
             });
         }
         if(!song.src||!song.lrc){
-            const API_BASE="https://music-api-8ivs.onrender.com";
+            // const API_BASE="https://music-api-8ivs.onrender.com";
             // const API_BASE="https://api.zsaw.dpdns.org";
             const result:Result<MusicLyrics,Error>=await safeAsyncRun(async()=>{
-                const response=await fetch(`${API_BASE}/api/lyrics/${server}/${song.id}`);
+                const response=await fetch(`${this.API_BASE}/api/lyrics/${server}/${song.id}`);
                 const data:MusicLyrics=await response.json();
                 return data;
             });
@@ -135,7 +142,9 @@ class zPlayer extends HTMLElement{
         start?.addEventListener("click",()=>{
             this.isPlaying=!this.isPlaying;
             if(this.isPlaying){
-                this.audio.play();
+                if (this.audio.src){
+                    this.audio.play().catch(e => console.log("播放失败:", e));
+                }
             }else{
                 this.audio.pause();
             }
@@ -164,8 +173,8 @@ class zPlayer extends HTMLElement{
                 this.currentIndex=getRandomIntInclusive(0,totals-1);
             }else{
             this.currentIndex=(this.currentIndex-1+totals)%totals;
-            this.loadMusic(this.currentIndex);
             }
+            this.loadMusic(this.currentIndex);
         });
         next?.addEventListener("click",()=>{
             const totals=this.songsList.length;
@@ -277,6 +286,7 @@ class zPlayer extends HTMLElement{
         const volPanel = this.shadowRoot?.querySelector<HTMLDivElement>(".volPanel");
         const volSlider = this.shadowRoot?.querySelector<HTMLInputElement>(".volSlider");
         const volText = this.shadowRoot?.querySelector<HTMLDivElement>(".volText");
+        this.audio.volume = 0.47;
         trumpet?.addEventListener("click",()=>{
             volPanel?.classList.toggle("hidden");
         });
