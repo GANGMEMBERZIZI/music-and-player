@@ -126,7 +126,7 @@ class zPlayer extends HTMLElement{
                 song.lrc=result.value.data.lrc;
             }
         }
-        this.audio.src=song.src;
+        this.audio.src = song.src.includes("music.126.net")?`${this.API_BASE}/api/proxy?url=${encodeURIComponent(song.src)}`:song.src;
         this.currentLyrics=parseLRC(song.lrc);
         this.renderLyrics();
         if(this.isPlaying) {

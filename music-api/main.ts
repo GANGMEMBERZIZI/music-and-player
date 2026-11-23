@@ -296,6 +296,36 @@ Bun.serve({
         { headers: CORS_HEADERS }
       );
     },
-  "/api/health": () => new Response("ok", { headers: CORS_HEADERS }),    
+  "/api/health": () => new Response("ok", { headers: CORS_HEADERS }),
+  "/api/proxy": async (req) => {
+      const targetUrl = new URL(req.url).searchParams.get("url");
+      if (!targetUrl || !/^https?:\/\//i.test(targetUrl)) {
+        return new Response("Invalid url", { status: 400, headers: CORS_HEADERS });
+      }
+      const proxyResult = await safeAsyncRun(async () => {
+        const proxyHeaders: Record<string, string> = {
+          "User-Agent": NETEASE_HEADERS["User-Agent"],
+          Referer: "https://music.163.com/",
+        };
+        const range = req.headers.get("Range");
+        if (range) {
+          proxyHeaders["Range"] = range;
+        }
+        const audioRes = await fetch(targetUrl, { headers: proxyHeaders });
+        const resHeaders = new Headers(CORS_HEADERS);
+        for (const key of ["Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"]) {
+          const val = audioRes.headers.get(key);
+          if (val) resHeaders.set(key, val);
+        }
+        return new Response(audioRes.body, {
+          status: audioRes.status,
+          headers: resHeaders,
+        });
+      });
+      if (!proxyResult.ok) {
+        return new Response("Proxy failed", { status: 502, headers: CORS_HEADERS });
+      }
+      return proxyResult.value;
+    },    
   }
 });
