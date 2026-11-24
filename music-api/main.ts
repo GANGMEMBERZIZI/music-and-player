@@ -105,12 +105,18 @@ async function getQQUrl(songmid:string):Promise<string>{
 async function getNeteaseListUrl(id:string):Promise<string>{
   const DefaultUrl=`https://music.163.com/song/media/outer/url?id=${id}.mp3`;
   const result=await safeAsyncRun(async()=>{
-    const response=await fetch (`https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,{ headers: NETEASE_HEADERS, signal: AbortSignal.timeout(5000) });
+  const { "X-Real-IP": _, "X-Forwarded-For": __, ...realHeaders } = NETEASE_HEADERS;
+  const response = await fetch(
+  `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,
+  { headers: realHeaders, signal: AbortSignal.timeout(5000) });
     const Responsedata:NeteaseVip=await response.json();
     const songData=Responsedata.data?.[0];
-    if (songData?.url && !songData?.freeTrialInfo){
-     return songData.url.replace(/^http:\/\//i, "https://");
-    }else{
+    if (songData?.url && !songData?.freeTrialInfo) {
+      return songData.url
+    .replace(/^http:\/\//i, "https://")
+    .replace(/m704\.music\.126\.net/i, "m701.music.126.net")
+    .replace(/m804\.music\.126\.net/i, "m801.music.126.net");
+  }else{
     const unblockResult = await match(Number(id), ["bilibili","youtube"]);
     if (unblockResult?.url) {
       return unblockResult.url.replace(/^http:\/\//i, "https://");
@@ -305,7 +311,6 @@ Bun.serve({
       const proxyResult = await safeAsyncRun(async () => {
         const proxyHeaders: Record<string, string> = {
           "User-Agent": NETEASE_HEADERS["User-Agent"],
-          Referer: "https://music.163.com/",
         };
         const range = req.headers.get("Range");
         if (range) {

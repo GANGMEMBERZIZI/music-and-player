@@ -8,7 +8,7 @@ import type {Result} from "./Error.js";
 class zPlayer extends HTMLElement{
     private isPlaying:boolean=this.getAttribute('autoplay')==='true';
     private currentMode=this.getAttribute('order')||'ordering';
-    private audio=new Audio();
+    private audio=Object.assign(new Audio(), { preload: "auto" });
     private songsList:MusicList[]=[];
     private currentIndex:number=0;
     private API_BASE=`https://music-api-8ivs.onrender.com`;
@@ -91,6 +91,7 @@ class zPlayer extends HTMLElement{
     private async loadMusic(index:number){
         if(this.songsList.length===0)
             return;
+        this.audio.pause();
         const song=this.songsList[index];
         const server=this.getAttribute("server");
         const title=this.shadowRoot?.querySelector<HTMLParagraphElement>(".title");
@@ -126,8 +127,9 @@ class zPlayer extends HTMLElement{
                 song.lrc=result.value.data.lrc;
             }
         }
+        if (!song.src) return;
         this.audio.src = song.src.includes("music.126.net")?`${this.API_BASE}/api/proxy?url=${encodeURIComponent(song.src)}`:song.src;
-        this.currentLyrics=parseLRC(song.lrc);
+        this.currentLyrics=parseLRC(song.lrc||"");
         this.renderLyrics();
         if(this.isPlaying) {
             this.audio.play().catch(e=>console.log("自动播放错误:",e));
